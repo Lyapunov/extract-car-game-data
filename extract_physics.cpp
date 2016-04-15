@@ -170,6 +170,7 @@ namespace {
                --drop;
             }
             if (frame.empty())
+                imwrite( "extract_background.png", staticBackground );
                 break;
             Mat after = frame(cv::Rect(sX, sY, sWidth, sHeight));
             Mat diff = frame.clone();
@@ -224,6 +225,5 @@ int main(int ac, char** av) {
         return 1;
     }
     int val = processOfDynamicBackgroundExtension(capture);
-    imwrite( "extract_background.png", staticBackground );
     return val;
 }
