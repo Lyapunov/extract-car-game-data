@@ -8,7 +8,6 @@
 using namespace cv;
 using namespace std;
 
-
 namespace {
     void help(char** av) {
        std::cout << "\nDo the analysis and extract the physics of the simple car game\n"
@@ -21,6 +20,13 @@ namespace {
        public:
           virtual ~ImageProcessor() {}
           virtual bool process( cv::Mat frame, bool dropped ) = 0;
+    };
+
+
+    class StaticBackgroundProcessor : public ImageProcessor {
+       public:
+          virtual bool process( cv::Mat frame, bool dropped ) override {
+          }
     };
 
     class DynamicBackgroundProcessor : public ImageProcessor {
