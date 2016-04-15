@@ -10,38 +10,6 @@ using namespace std;
 
 
 namespace {
-    static int ax = 0;
-    static int ay = 0;
-
-    static const int staticCX = 1000;
-    static const int staticCY = 1000;
-    static Mat staticBackground = Mat::zeros( staticCX * 2 + 1, staticCY * 2 + 1, CV_8UC3 );
-    static Mat numOfSamples     = Mat::zeros( staticCX * 2 + 1, staticCY * 2 + 1, CV_8UC1 );
-
-    void addToBackground( const Mat& img, short int posx, short int posy ) {
-       cout << "SAVE" << std::endl;
-       for(int y=0;y<img.rows;y++)
-          for(int x=0;x<img.cols;x++)
-          {
-             int px = staticCX + x + posx;
-             int py = staticCY + y + posy;
-             //int alpha = ov.at<Vec4b>(y,x)[3];
-             if (!(img.at<Vec3b>(y,x)[0] == 0 && img.at<Vec3b>(y,x)[1] == 255 && img.at<Vec3b>(y,x)[2] == 0)) {
-                if ( 0 <= px && px < numOfSamples.cols && 0 <= py && py < numOfSamples.rows ) {
-                unsigned char oldnums = numOfSamples.at<Vec3b>(py,px)[0];
-                if (oldnums < 255) {
-                   for (short int i = 0; i < 3; i++) { 
-                      staticBackground.at<Vec3b>(py,px)[i] = 
-                         (unsigned char) (( int(img.at<Vec3b>(y,x)[i]) + 
-                                          int(staticBackground.at<Vec3b>(py,px)[i] * oldnums) ) / int(oldnums + 1));
-                   }
-                   numOfSamples.at<Vec3b>(py,px)[0]++;
-                }
-                }
-            }
-          }        
-    }
-
     void help(char** av) {
        std::cout << "\nDo the analysis and extract the physics of the simple car game\n"
                  << "Usage: " << av[0] << " <video device number>\n"
@@ -113,7 +81,82 @@ namespace {
        return diffStoredBW;
     }
 
-    int processOfDynamicBackgroundExtension(VideoCapture& capture) {
+    class ImageProcessor {
+       public:
+          virtual ~ImageProcessor() {}
+          virtual bool process( cv::Mat frame, bool dropped ) = 0;
+    };
+
+    class DynamicBackgroundProcessor : public ImageProcessor {
+       public:
+          DynamicBackgroundProcessor( int staticSize = 1000 ) : staticSize_( staticSize ) {
+             staticBackground = Mat::zeros( staticSize_ * 2 + 1, staticSize_ * 2 + 1, CV_8UC3 );
+             numOfSamples     = Mat::zeros( staticSize_ * 2 + 1, staticSize_ * 2 + 1, CV_8UC1 );
+             staticBackground.setTo(cv::Scalar(0,255,0));
+
+          }
+          virtual bool process( cv::Mat frame, bool dropped ) override {
+             if ( !dropped ) {
+                if (frame.empty()) {
+                    imwrite( "extract_background.png", staticBackground );
+                    return false;
+                }
+                Mat diff = frame.clone();
+            
+                short int dx = 0;
+                short int dy = 0;
+                long sum = 0;
+                Mat foregroundMask = calculate_shift_2(beforeFrame, frame, dx, dy, sum);
+                Mat beforeFrameMasked(beforeFrame.size(), beforeFrame.type(), cv::Scalar(0,255,0));
+                beforeFrame.copyTo( beforeFrameMasked, foregroundMask );
+            
+                addToBackground( beforeFrameMasked, ax, ay );
+            
+                ax += dx;
+                ay += dy;
+                std::cout << " D(" << dx << ";" << dy << ") -- A(" << ax << ";" << ay << ") VAL=" << sum << std::endl;
+            
+                imshow("binary", beforeFrameMasked );
+             }
+            
+             beforeFrame = frame.clone();
+             return true;
+          }
+       private:
+          void addToBackground( const Mat& img, short int posx, short int posy ) {
+             for(int y=0;y<img.rows;y++) {
+                for(int x=0;x<img.cols;x++) {
+                   int px = staticSize_ + x + posx;
+                   int py = staticSize_ + y + posy;
+                   //int alpha = ov.at<Vec4b>(y,x)[3];
+                   if (!(img.at<Vec3b>(y,x)[0] == 0 && img.at<Vec3b>(y,x)[1] == 255 && img.at<Vec3b>(y,x)[2] == 0)) {
+                      if ( 0 <= px && px < numOfSamples.cols && 0 <= py && py < numOfSamples.rows ) {
+                         unsigned char oldnums = numOfSamples.at<Vec3b>(py,px)[0];
+                         if (oldnums < 255) {
+                            for (short int i = 0; i < 3; i++) { 
+                               staticBackground.at<Vec3b>(py,px)[i] = 
+                                  (unsigned char) (( int(img.at<Vec3b>(y,x)[i]) + 
+                                                   int(staticBackground.at<Vec3b>(py,px)[i] * oldnums) ) / int(oldnums + 1));
+                            }
+                            numOfSamples.at<Vec3b>(py,px)[0]++;
+                         }
+                      }
+                   }
+                }
+             }
+          }
+
+          cv::Mat beforeFrame;
+          cv::Mat numOfSamples; 
+
+          int ax = 0;
+          int ay = 0;
+          int staticSize_;
+
+          cv::Mat staticBackground;
+    };
+
+    int processShell(VideoCapture& capture, ImageProcessor& processor) {
         int n = 0;
         char filename[200];
         string window_name = "background extension 2";
@@ -122,8 +165,6 @@ namespace {
         Mat before;
         capture >> frame;
           
-        staticBackground.setTo(cv::Scalar(0,255,0));
-
         int sWidth = 200;
         int sHeight = 200;
         int sX = 90;
@@ -131,37 +172,17 @@ namespace {
         int dom = 15;
         int drop = 10;
 
-        before = frame(cv::Rect(sX, sY, sWidth, sHeight));
-        cv::Mat beforeFrame = frame.clone();
         for (;;) {
             capture >> frame;
+            if ( !processor.process( frame, drop > 0 ) ) {
+               break;
+            }
+
+            imshow(window_name, frame);
+
             if ( drop > 0 ) {
                --drop;
             }
-            if (frame.empty()) {
-                imwrite( "extract_background.png", staticBackground );
-                break;
-            }
-            Mat after = frame(cv::Rect(sX, sY, sWidth, sHeight));
-            Mat diff = frame.clone();
-
-            short int dx = 0;
-            short int dy = 0;
-            long sum = 0;
-            Mat foregroundMask = calculate_shift_2(beforeFrame, frame, dx, dy, sum);
-            Mat beforeFrameMasked(beforeFrame.size(), beforeFrame.type(), cv::Scalar(0,255,0));
-            beforeFrame.copyTo( beforeFrameMasked, foregroundMask );
-
-            if ( !drop ) {
-               addToBackground( beforeFrameMasked, ax, ay );
-            }
-
-            ax += dx;
-            ay += dy;
-            std::cout << " D(" << dx << ";" << dy << ") -- A(" << ax << ";" << ay << ") VAL=" << sum << std::endl;
-            imshow(window_name, frame);
-
-            imshow("binary", beforeFrameMasked );
 
             switch ( (char)waitKey(5) ) {
                 case 'q':
@@ -171,9 +192,6 @@ namespace {
                 default:
                     break;
             }
-
-            before = after.clone();
-            beforeFrame = frame.clone();
         }
         return 0;
     }
@@ -195,6 +213,8 @@ int main(int ac, char** av) {
         help(av);
         return 1;
     }
-    int val = processOfDynamicBackgroundExtension(capture);
+
+    DynamicBackgroundProcessor dbp;
+    int val = processShell(capture, dbp);
     return val;
 }
