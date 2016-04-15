@@ -8,12 +8,7 @@
 using namespace cv;
 using namespace std;
 
-template <class T>
-T myAbs(T x) {
-    return (x > 0 ? x : -x);
-}
 
-//hide the local functions in an anon namespace
 namespace {
     static int ax = 0;
     static int ay = 0;
@@ -52,32 +47,6 @@ namespace {
                  << "Usage: " << av[0] << " <video device number>\n"
                  << "OR   : " << av[0] << " <.avi filename>\n"
                  << std::endl;
-    }
-
-    short int cutoff(short int val) {
-       return (val > 0 ? myAbs(val) : 0);
-    }
-
-    Mat diff_image( const Mat& beforeImage, const Mat& afterImage, short int shiftx, short int shifty, short int cWidth, short int cHeight, bool show = false) 
-    {
-            Mat bn = beforeImage(cv::Rect(cutoff(shiftx), cutoff(shifty), cWidth, cHeight));
-            Mat an = afterImage(cv::Rect(cutoff(-shiftx), cutoff(-shifty), cWidth, cHeight));
-            Mat diff = bn.clone();
-            cv::absdiff(an, bn, diff);
-            if (show) {
-               stringstream ss;
-               ss << "O(" << shiftx << ";" << shifty << ")";
-               imshow(ss.str(), diff);
-            }
-            return diff; 
-    }
-
-    Mat zero_image( const Mat& diffImage ) {
-       cv::Mat greyMat;
-       cv::cvtColor( diffImage, greyMat, CV_BGR2GRAY );
-       cv::threshold( greyMat, greyMat, 3, 255, THRESH_BINARY );
-//       cv::dilate( greyMat, greyMat, getStructuringElement( MORPH_RECT, Size(5,5), Point(2,2) ));
-       return greyMat;
     }
 
 
@@ -169,9 +138,10 @@ namespace {
             if ( drop > 0 ) {
                --drop;
             }
-            if (frame.empty())
+            if (frame.empty()) {
                 imwrite( "extract_background.png", staticBackground );
                 break;
+            }
             Mat after = frame(cv::Rect(sX, sY, sWidth, sHeight));
             Mat diff = frame.clone();
 
@@ -182,15 +152,16 @@ namespace {
             Mat beforeFrameMasked(beforeFrame.size(), beforeFrame.type(), cv::Scalar(0,255,0));
             beforeFrame.copyTo( beforeFrameMasked, foregroundMask );
 
+            if ( !drop ) {
+               addToBackground( beforeFrameMasked, ax, ay );
+            }
+
             ax += dx;
             ay += dy;
             std::cout << " D(" << dx << ";" << dy << ") -- A(" << ax << ";" << ay << ") VAL=" << sum << std::endl;
             imshow(window_name, frame);
 
             imshow("binary", beforeFrameMasked );
-            if ( !drop ) {
-               addToBackground( beforeFrameMasked, ax + cutoff(-dx), ay + cutoff(-dy) );
-            }
 
             switch ( (char)waitKey(5) ) {
                 case 'q':
