@@ -17,8 +17,6 @@ namespace {
                  << std::endl;
     }
 
-
-
     class ImageProcessor {
        public:
           virtual ~ImageProcessor() {}
@@ -28,15 +26,15 @@ namespace {
     class DynamicBackgroundProcessor : public ImageProcessor {
        public:
           DynamicBackgroundProcessor( int staticSize = 1000, short int maxstep = 5 ) : staticSize_( staticSize ), maxstep_( maxstep ) {
-             staticBackground = Mat::zeros( staticSize_ * 2 + 1, staticSize_ * 2 + 1, CV_8UC3 );
-             numOfSamples     = Mat::zeros( staticSize_ * 2 + 1, staticSize_ * 2 + 1, CV_8UC1 );
-             staticBackground.setTo(cv::Scalar(0,255,0));
+             staticBackground_ = Mat::zeros( staticSize_ * 2 + 1, staticSize_ * 2 + 1, CV_8UC3 );
+             numOfSamplesInAverage_     = Mat::zeros( staticSize_ * 2 + 1, staticSize_ * 2 + 1, CV_8UC1 );
+             staticBackground_.setTo(cv::Scalar(0,255,0));
 
           }
           virtual bool process( cv::Mat frame, bool dropped ) override {
              if ( !dropped ) {
                 if (frame.empty()) {
-                    imwrite( "extract_background.png", staticBackground );
+                    imwrite( "extract_background.png", staticBackground_ );
                     return false;
                 }
                 Mat diff = frame.clone();
@@ -44,20 +42,20 @@ namespace {
                 short int dx = 0;
                 short int dy = 0;
                 long sum = 0;
-                Mat foregroundMask = calculateShift(beforeFrame, frame, dx, dy, sum);
-                Mat beforeFrameMasked(beforeFrame.size(), beforeFrame.type(), cv::Scalar(0,255,0));
-                beforeFrame.copyTo( beforeFrameMasked, foregroundMask );
+                Mat foregroundMask = calculateShift(beforeFrame_, frame, dx, dy, sum);
+                Mat beforeFrame_Masked(beforeFrame_.size(), beforeFrame_.type(), cv::Scalar(0,255,0));
+                beforeFrame_.copyTo( beforeFrame_Masked, foregroundMask );
             
-                addToBackground( beforeFrameMasked, ax, ay );
+                addToBackground( beforeFrame_Masked, ax_, ay_ );
             
-                ax += dx;
-                ay += dy;
-                std::cout << " D(" << dx << ";" << dy << ") -- A(" << ax << ";" << ay << ") VAL=" << sum << std::endl;
+                ax_ += dx;
+                ay_ += dy;
+                std::cout << " D(" << dx << ";" << dy << ") -- A(" << ax_ << ";" << ay_ << ") VAL=" << sum << std::endl;
             
-                imshow("binary", beforeFrameMasked );
+                imshow("binary", beforeFrame_Masked );
              }
             
-             beforeFrame = frame.clone();
+             beforeFrame_ = frame.clone();
              return true;
           }
        private:
@@ -131,15 +129,15 @@ namespace {
                    int py = staticSize_ + y + posy;
                    //int alpha = ov.at<Vec4b>(y,x)[3];
                    if (!(img.at<Vec3b>(y,x)[0] == 0 && img.at<Vec3b>(y,x)[1] == 255 && img.at<Vec3b>(y,x)[2] == 0)) {
-                      if ( 0 <= px && px < numOfSamples.cols && 0 <= py && py < numOfSamples.rows ) {
-                         unsigned char oldnums = numOfSamples.at<Vec3b>(py,px)[0];
+                      if ( 0 <= px && px < numOfSamplesInAverage_.cols && 0 <= py && py < numOfSamplesInAverage_.rows ) {
+                         unsigned char oldnums = numOfSamplesInAverage_.at<Vec3b>(py,px)[0];
                          if (oldnums < 255) {
                             for (short int i = 0; i < 3; i++) { 
-                               staticBackground.at<Vec3b>(py,px)[i] = 
+                               staticBackground_.at<Vec3b>(py,px)[i] = 
                                   (unsigned char) (( int(img.at<Vec3b>(y,x)[i]) + 
-                                                   int(staticBackground.at<Vec3b>(py,px)[i] * oldnums) ) / int(oldnums + 1));
+                                                   int(staticBackground_.at<Vec3b>(py,px)[i] * oldnums) ) / int(oldnums + 1));
                             }
-                            numOfSamples.at<Vec3b>(py,px)[0]++;
+                            numOfSamplesInAverage_.at<Vec3b>(py,px)[0]++;
                          }
                       }
                    }
@@ -147,15 +145,15 @@ namespace {
              }
           }
 
-          cv::Mat beforeFrame;
-          cv::Mat numOfSamples; 
+          cv::Mat beforeFrame_;
+          cv::Mat numOfSamplesInAverage_; 
 
-          int ax = 0;
-          int ay = 0;
+          int ax_ = 0;
+          int ay_ = 0;
           int staticSize_;
           short int maxstep_;
 
-          cv::Mat staticBackground;
+          cv::Mat staticBackground_;
     };
 
     int processShell(VideoCapture& capture, ImageProcessor& processor) {
