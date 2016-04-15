@@ -48,15 +48,10 @@ namespace {
     }
 
     void help(char** av) {
-        cout << "\nThis program justs gets you started reading images from video\n"
-            "Usage:\n./" << av[0] << " <video device number>\n"
-            << "q,Q,esc -- quit\n"
-            << "space   -- save frame\n\n"
-            << "\tThis is a starter sample, to get you up and going in a copy pasta fashion\n"
-            << "\tThe program captures frames from a camera connected to your computer.\n"
-            << "\tTo find the video device number, try ls /dev/video* \n"
-            << "\tYou may also pass a video file, like my_vide.avi instead of a device number"
-            << endl;
+       std::cout << "\nDo the analysis and extract the physics of the simple car game\n"
+                 << "Usage: " << av[0] << " <video device number>\n"
+                 << "OR   : " << av[0] << " <.avi filename>\n"
+                 << std::endl;
     }
 
     short int cutoff(short int val) {
@@ -149,11 +144,10 @@ namespace {
        return diffStoredBW;
     }
 
-    int process(VideoCapture& capture) {
+    int processOfDynamicBackgroundExtension(VideoCapture& capture) {
         int n = 0;
         char filename[200];
-        string window_name = "video | q or esc to quit";
-        cout << "press space to save a picture. q or esc to quit" << endl;
+        string window_name = "background extension 2";
         namedWindow(window_name, CV_WINDOW_KEEPRATIO); //resizable window;
         Mat frame;
         Mat before;
@@ -201,7 +195,7 @@ namespace {
                 case 'q':
                 case 'Q':
                 case 27: //escape key
-                    return 0;
+                    return 1;
                 default:
                     break;
             }
@@ -229,7 +223,7 @@ int main(int ac, char** av) {
         help(av);
         return 1;
     }
-    int val = process(capture);
+    int val = processOfDynamicBackgroundExtension(capture);
     imwrite( "extract_background.png", staticBackground );
     return val;
 }
