@@ -32,15 +32,15 @@ namespace {
     class DynamicBackgroundProcessor : public ImageProcessor {
        public:
           DynamicBackgroundProcessor( int staticSize = 1000, short int maxstep = 5 ) : staticSize_( staticSize ), maxstep_( maxstep ) {
-             staticBackground_ = Mat::zeros( staticSize_ * 2 + 1, staticSize_ * 2 + 1, CV_8UC3 );
+             segmentedBackground_ = Mat::zeros( staticSize_ * 2 + 1, staticSize_ * 2 + 1, CV_8UC3 );
              numOfSamplesInAverage_     = Mat::zeros( staticSize_ * 2 + 1, staticSize_ * 2 + 1, CV_8UC1 );
-             staticBackground_.setTo(cv::Scalar(0,255,0));
+             segmentedBackground_.setTo(cv::Scalar(0,255,0));
 
           }
           virtual bool process( cv::Mat frame, bool dropped ) override {
              if ( !dropped ) {
                 if (frame.empty()) {
-                    imwrite( "extract_background.png", staticBackground_ );
+                    imwrite( "extract_background.png", segmentedBackground_ );
                     return false;
                 }
                 Mat diff = frame.clone();
@@ -139,9 +139,9 @@ namespace {
                          unsigned char oldnums = numOfSamplesInAverage_.at<Vec3b>(py,px)[0];
                          if (oldnums < 255) {
                             for (short int i = 0; i < 3; i++) { 
-                               staticBackground_.at<Vec3b>(py,px)[i] = 
+                               segmentedBackground_.at<Vec3b>(py,px)[i] = 
                                   (unsigned char) (( int(img.at<Vec3b>(y,x)[i]) + 
-                                                   int(staticBackground_.at<Vec3b>(py,px)[i] * oldnums) ) / int(oldnums + 1));
+                                                   int(segmentedBackground_.at<Vec3b>(py,px)[i] * oldnums) ) / int(oldnums + 1));
                             }
                             numOfSamplesInAverage_.at<Vec3b>(py,px)[0]++;
                          }
@@ -159,7 +159,7 @@ namespace {
           int staticSize_;
           short int maxstep_;
 
-          cv::Mat staticBackground_;
+          cv::Mat segmentedBackground_;
     };
 
     int processShell(VideoCapture& capture, ImageProcessor& processor) {
