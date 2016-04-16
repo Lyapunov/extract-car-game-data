@@ -90,9 +90,9 @@ namespace {
 
     class DynamicBackgroundProcessor : public ImageProcessor {
        public:
-          DynamicBackgroundProcessor( int staticSize = 1000, short int maxstep = 5 ) : staticSize_( staticSize ), maxstep_( maxstep ) {
-             segmentedBackground_ = Mat::zeros( staticSize_ * 2 + 1, staticSize_ * 2 + 1, CV_8UC3 );
-             numOfSamplesInAverage_     = Mat::zeros( staticSize_ * 2 + 1, staticSize_ * 2 + 1, CV_8UC1 );
+          DynamicBackgroundProcessor( const cv::Mat& staticBackground, int bigMapSize = 1000, short int maxstep = 5 ) : staticBackground_( staticBackground ), bigMapSize_( bigMapSize ), maxstep_( maxstep ) {
+             segmentedBackground_ = Mat::zeros( bigMapSize_ * 2 + 1, bigMapSize_ * 2 + 1, CV_8UC3 );
+             numOfSamplesInAverage_     = Mat::zeros( bigMapSize_ * 2 + 1, bigMapSize_ * 2 + 1, CV_8UC1 );
              segmentedBackground_.setTo(cv::Scalar(0,255,0));
 
           }
@@ -192,8 +192,8 @@ namespace {
           void addToBackground( const Mat& img, short int posx, short int posy ) {
              for(int y=0;y<img.rows;y++) {
                 for(int x=0;x<img.cols;x++) {
-                   int px = staticSize_ + x + posx;
-                   int py = staticSize_ + y + posy;
+                   int px = bigMapSize_ + x + posx;
+                   int py = bigMapSize_ + y + posy;
                    //int alpha = ov.at<Vec4b>(y,x)[3];
                    if (!(img.at<Vec3b>(y,x)[0] == 0 && img.at<Vec3b>(y,x)[1] == 255 && img.at<Vec3b>(y,x)[2] == 0)) {
                       if ( 0 <= px && px < numOfSamplesInAverage_.cols && 0 <= py && py < numOfSamplesInAverage_.rows ) {
@@ -217,10 +217,11 @@ namespace {
 
           int ax_ = 0;
           int ay_ = 0;
-          int staticSize_;
+          int bigMapSize_;
           short int maxstep_;
 
           cv::Mat segmentedBackground_;
+          cv::Mat staticBackground_;
     };
 
     int processShell(VideoCapture& capture, ImageProcessor& processor) {
@@ -272,24 +273,28 @@ int main(int ac, char** av) {
         return 1;
     }
     std::string arg = av[1];
-    VideoCapture capture(arg); //try to open string, this will attempt to open it as a video file
-    if (!capture.isOpened()) //if this fails, try to open as a video camera, through the use of an integer param
-        capture.open(atoi(arg.c_str()));
-    if (!capture.isOpened()) {
-        cerr << "Failed to open a video device or video file!\n" << endl;
-        help(av);
-        return 1;
-    }
 
     StaticBackgroundProcessor sbp;
-    if ( !processShell(capture, sbp) ) {
-       return 0;
+    {
+       VideoCapture capture(arg); //try to open string, this will attempt to open it as a video file
+       if (!capture.isOpened()) //if this fails, try to open as a video camera, through the use of an integer param
+           capture.open(atoi(arg.c_str()));
+       if (!capture.isOpened()) {
+           cerr << "Failed to open a video device or video file!\n" << endl;
+           help(av);
+           return 1;
+       }
+
+       if ( !processShell(capture, sbp) ) {
+          return 0;
+       }
+
+       capture.release();
     }
 
-/*    DynamicBackgroundProcessor dbp;
-    if ( !processShell(capture, dbp) ) {
-       return 0;
-    }*/
+/*  {
+       DynamicBackgroundProcessor dbp( sbp.getResult() );
+    } */
 
     return 0;
 }
