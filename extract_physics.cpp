@@ -19,13 +19,24 @@ namespace {
     class ImageProcessor {
        public:
           virtual ~ImageProcessor() {}
-          virtual bool process( cv::Mat frame, bool dropped ) = 0;
+          virtual bool process( const cv::Mat& frame, bool dropped ) {
+             if ( !dropped ) {
+                if (frame.empty()) {
+                    return false;
+                }
+             }
+             beforeFrame_ = frame.clone();
+             return true;
+          }
+          const cv::Mat& getBeforeFrame() { return beforeFrame_; }
+       private:
+          cv::Mat beforeFrame_;
     };
 
 
     class StaticBackgroundProcessor : public ImageProcessor {
        public:
-          virtual bool process( cv::Mat frame, bool dropped ) override {
+          virtual bool process( const cv::Mat& frame, bool dropped ) override {
           }
     };
 
@@ -37,7 +48,7 @@ namespace {
              segmentedBackground_.setTo(cv::Scalar(0,255,0));
 
           }
-          virtual bool process( cv::Mat frame, bool dropped ) override {
+          virtual bool process( const cv::Mat& frame, bool dropped ) override {
              if ( !dropped ) {
                 if (frame.empty()) {
                     imwrite( "extract_background.png", segmentedBackground_ );
@@ -48,9 +59,9 @@ namespace {
                 short int dx = 0;
                 short int dy = 0;
                 long sum = 0;
-                Mat foregroundMask = calculateShift(beforeFrame_, frame, dx, dy, sum);
-                Mat beforeFrame_Masked(beforeFrame_.size(), beforeFrame_.type(), cv::Scalar(0,255,0));
-                beforeFrame_.copyTo( beforeFrame_Masked, foregroundMask );
+                Mat foregroundMask = calculateShift(getBeforeFrame(), frame, dx, dy, sum);
+                Mat beforeFrame_Masked(getBeforeFrame().size(), getBeforeFrame().type(), cv::Scalar(0,255,0));
+                getBeforeFrame().copyTo( beforeFrame_Masked, foregroundMask );
             
                 addToBackground( beforeFrame_Masked, ax_, ay_ );
             
@@ -60,8 +71,9 @@ namespace {
             
                 imshow("binary", beforeFrame_Masked );
              }
+
+             ImageProcessor::process( frame, dropped );
             
-             beforeFrame_ = frame.clone();
              return true;
           }
        private:
@@ -221,6 +233,9 @@ int main(int ac, char** av) {
     }
 
     DynamicBackgroundProcessor dbp;
-    int val = processShell(capture, dbp);
-    return val;
+    if ( !processShell(capture, dbp) ) {
+       return 0;
+    }
+
+    return 0;
 }
