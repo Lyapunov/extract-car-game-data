@@ -90,11 +90,17 @@ namespace {
 
     class DynamicBackgroundProcessor : public ImageProcessor {
        public:
-          DynamicBackgroundProcessor( const cv::Mat& staticBackground, int bigMapSize = 1000, short int maxstep = 5 ) : staticBackground_( staticBackground ), bigMapSize_( bigMapSize ), maxstep_( maxstep ) {
-             segmentedBackground_ = Mat::zeros( bigMapSize_ * 2 + 1, bigMapSize_ * 2 + 1, CV_8UC3 );
-             numOfSamplesInAverage_     = Mat::zeros( bigMapSize_ * 2 + 1, bigMapSize_ * 2 + 1, CV_8UC1 );
-             segmentedBackground_.setTo(cv::Scalar(0,255,0));
+          DynamicBackgroundProcessor( int bigMapSize = 1000, short int maxstep = 5 ) : pStaticBackground_( 0 ), bigMapSize_( bigMapSize ), maxstep_( maxstep ) {
+             init();
+          }
 
+          DynamicBackgroundProcessor( const cv::Mat& staticBackground, int bigMapSize = 1000, short int maxstep = 5 ) : pStaticBackground_( new cv::Mat( staticBackground.clone() )  ), bigMapSize_( bigMapSize ), maxstep_( maxstep ) {
+             init();
+          }
+          void init() {
+             segmentedBackground_  = Mat::zeros( bigMapSize_ * 2 + 1, bigMapSize_ * 2 + 1, CV_8UC3 );
+             numOfSamplesInAverage_= Mat::zeros( bigMapSize_ * 2 + 1, bigMapSize_ * 2 + 1, CV_8UC1 );
+             segmentedBackground_.setTo(cv::Scalar(0,255,0));
           }
           virtual bool process( const cv::Mat& frame, bool dropped ) override {
              if ( !dropped ) {
@@ -212,7 +218,6 @@ namespace {
              }
           }
 
-          cv::Mat beforeFrame_;
           cv::Mat numOfSamplesInAverage_; 
 
           int ax_ = 0;
@@ -221,7 +226,7 @@ namespace {
           short int maxstep_;
 
           cv::Mat segmentedBackground_;
-          cv::Mat staticBackground_;
+          cv::Mat* pStaticBackground_;
     };
 
     int processShell(VideoCapture& capture, ImageProcessor& processor) {
@@ -292,8 +297,8 @@ int main(int ac, char** av) {
        capture.release();
     }
 
-/*  {
-       DynamicBackgroundProcessor dbp( sbp.getResult() );
+/*    {
+       DynamicBackgroundProcessor dbp;
     } */
 
     return 0;
