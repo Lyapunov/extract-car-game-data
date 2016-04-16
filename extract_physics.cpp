@@ -134,13 +134,18 @@ namespace {
           // Roboust solution for calculating the shift between two frames after each other
           cv::Mat calculateShift( const Mat& before, const Mat& after, short int& rx, short int& ry, long int& sum ) {
              // Creating the diff image, converting it to binary, then dilate a bit -> filtering out areas with exactly the same pixels
-             cv::Mat diff(before.size(), before.type());
-             cv::absdiff(before, after, diff);
-             cv::Mat grayscaleMat( before.size(), CV_8U);
-             cv::cvtColor( diff, grayscaleMat, CV_BGR2GRAY );
-             cv::Mat binaryMaskMat(grayscaleMat.size(), grayscaleMat.type());
-             cv::threshold(grayscaleMat, binaryMaskMat, 1, 255, cv::THRESH_BINARY);
-             cv::dilate( binaryMaskMat, binaryMaskMat, getStructuringElement( MORPH_RECT, Size(3,3), Point(1,1) ));
+             cv::Mat binaryMaskMat(before.size(), CV_8U);
+             if ( pStaticBackground_ ) {
+                pStaticBackground_->copyTo( binaryMaskMat );
+                cv::bitwise_not( binaryMaskMat, binaryMaskMat );
+             } else {
+                cv::Mat diff(before.size(), before.type());
+                cv::absdiff(before, after, diff);
+                cv::Mat grayscaleMat( before.size(), CV_8U);
+                cv::cvtColor( diff, grayscaleMat, CV_BGR2GRAY );
+                cv::threshold(grayscaleMat, binaryMaskMat, 1, 255, cv::THRESH_BINARY);
+                cv::dilate( binaryMaskMat, binaryMaskMat, getStructuringElement( MORPH_RECT, Size(3,3), Point(1,1) ));
+             }
   
              // Do the filter both on the before and on the after image 
              cv::Mat beforeGrayscale( before.size(), CV_8U );
