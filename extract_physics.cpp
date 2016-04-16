@@ -202,13 +202,16 @@ namespace {
                 }
              }
 
+
              cv::Mat diffStoredBW( after.size(), CV_8U, cvScalar(0.) );
              if ( rx == 0 && ry == 0 ) {
+                imshow("x", diffStoredBW);
                 return diffStoredBW;
              }
 
-             cv::threshold( diffStored, diffStoredBW, 3, 255, THRESH_BINARY );
-             cv::dilate( diffStoredBW, diffStoredBW, getStructuringElement( MORPH_RECT, Size(7,7), Point(3,3) ));
+             cv::threshold( diffStored, diffStoredBW, 0, 255, THRESH_BINARY ); // threshold: 0, everything that was not in the last round
+             imshow("x", diffStoredBW);
+             cv::dilate( diffStoredBW, diffStoredBW, getStructuringElement( MORPH_RECT, Size(9,9), Point(5,5) ));
              cv::bitwise_not( diffStoredBW, diffStoredBW );
              cv::bitwise_and( binaryMaskMat, diffStoredBW, diffStoredBW );
   
