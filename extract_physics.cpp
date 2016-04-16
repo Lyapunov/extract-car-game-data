@@ -92,8 +92,11 @@ namespace {
 
     class DynamicBackgroundProcessor : public ImageProcessor {
        public:
-          DynamicBackgroundProcessor( const cv::Mat* pStaticBackground = 0, unsigned char maxNumOfSamplesInAverageImage = MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE, int bigMapSize = 1000, short int maxstep = 5, bool mergePreviousDiff = MERGE_PREVIOUS_DIFF )
-           : pStaticBackground_( pStaticBackground ), pPreviousMask_( nullptr ), maxNumOfSamplesInAverageImage_( maxNumOfSamplesInAverageImage ), bigMapRadius_( bigMapSize ), maxstep_( maxstep ), mergePreviousDiff_( mergePreviousDiff )
+          DynamicBackgroundProcessor( std::vector<Vec2f>& trajectory,
+                                      const cv::Mat* pStaticBackground = 0,
+                                      unsigned char maxNumOfSamplesInAverageImage = MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE, int bigMapSize = 1000, short int maxstep = 5, bool mergePreviousDiff = MERGE_PREVIOUS_DIFF )
+           : trajectory_( trajectory ), pStaticBackground_( pStaticBackground ), pPreviousMask_( nullptr ),
+             maxNumOfSamplesInAverageImage_( maxNumOfSamplesInAverageImage ), bigMapRadius_( bigMapSize ), maxstep_( maxstep ), mergePreviousDiff_( mergePreviousDiff )
           {
              segmentedBackground_  = Mat::zeros( bigMapRadius_ * 2 + 1, bigMapRadius_ * 2 + 1, CV_64FC3 );
              numOfSamplesInAverage_= Mat::zeros( bigMapRadius_ * 2 + 1, bigMapRadius_ * 2 + 1, CV_8UC1 );
@@ -102,6 +105,8 @@ namespace {
           }
 
           virtual bool process( const cv::Mat& frame, bool dropped ) override {
+             short int dx = 0;
+             short int dy = 0;
              if ( !dropped ) {
                 if (frame.empty()) {
                     imwrite( "extract_background.png", getResult() );
@@ -109,8 +114,6 @@ namespace {
                 }
                 Mat diff = frame.clone();
             
-                short int dx = 0;
-                short int dy = 0;
                 Mat foregroundMask = calculateShift(getBeforeFrame(), frame, dx, dy);
                 Mat totalMask( foregroundMask.size(), foregroundMask.type() ); 
                 foregroundMask.copyTo( totalMask );
@@ -130,12 +133,13 @@ namespace {
             
                 ax_ += dx;
                 ay_ += dy;
-                std::cout << " D(" << dx << ";" << dy << ") -- A(" << ax_ << ";" << ay_ << ")" << std::endl;
+                // std::cout << " D(" << dx << ";" << dy << ") -- A(" << ax_ << ";" << ay_ << ")" << std::endl;
             
                 Mat beforeFrame_Masked(getBeforeFrame().size(), getBeforeFrame().type(), cv::Scalar(0,255,0));
                 getBeforeFrame().copyTo( beforeFrame_Masked, totalMask );
                 imshow("binary", beforeFrame_Masked );
              }
+             trajectory_.push_back( Vec2f( dx, dy ) );
 
              ImageProcessor::process( frame, dropped );
             
@@ -244,6 +248,7 @@ namespace {
           }
 
        private:
+          std::vector<Vec2f>& trajectory_;
           const cv::Mat* pStaticBackground_;
           cv::Mat* pPreviousMask_;
           unsigned char maxNumOfSamplesInAverageImage_;
@@ -328,7 +333,8 @@ int main(int ac, char** av) {
     }
     cv::Mat sbpResult = sbp.getResult();
 
-    DynamicBackgroundProcessor dbp( &sbpResult );
+    std::vector<Vec2f> trajectory;
+    DynamicBackgroundProcessor dbp( trajectory, &sbpResult );
     {
        VideoCapture capture(arg); //try to open string, this will attempt to open it as a video file
        if (!capture.isOpened()) //if this fails, try to open as a video camera, through the use of an integer param
@@ -345,6 +351,7 @@ int main(int ac, char** av) {
 
        capture.release();
     } 
+    cv::Mat dbpResult = dbp.getResult();
 
     return 0;
 }
