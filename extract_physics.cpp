@@ -8,7 +8,7 @@
 using namespace cv;
 using namespace std;
 
-const unsigned char MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE = 250;
+const unsigned char MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE = 1;
 
 namespace {
     void help(char** av) {
@@ -222,8 +222,7 @@ namespace {
                       const int px = bigMapRadius_ + x + posx;
                       const int py = bigMapRadius_ + y + posy;
                       if ( 0 <= px && px < numOfSamplesInAverage_.cols && 0 <= py && py < numOfSamplesInAverage_.rows ) {
-                         //if (!(img.at<Vec3b>(y,x)[0] == 0 && img.at<Vec3b>(y,x)[1] == 255 && img.at<Vec3b>(y,x)[2] == 0)) {
-                         unsigned char& numOfSamples = numOfSamplesInAverage_.at<Vec3b>(py,px)[0];
+                         unsigned char& numOfSamples = numOfSamplesInAverage_.at<unsigned char>( px, py );
                          if ( numOfSamples < maxNumOfSamplesInAverageImage_ ) {
                             for (short int i = 0; i < 3; i++) { 
                                double dNumOfSamples = static_cast<double>( numOfSamples );
