@@ -9,6 +9,7 @@ using namespace cv;
 using namespace std;
 
 const unsigned char MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE = 250;
+const bool MERGE_PREVIOUS_DIFF = false;
 
 namespace {
     void help(char** av) {
@@ -91,13 +92,13 @@ namespace {
 
     class DynamicBackgroundProcessor : public ImageProcessor {
        public:
-          DynamicBackgroundProcessor( unsigned char maxNumOfSamplesInAverageImage = MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE, int bigMapRadius = 1000, short int maxstep = 5, bool mergePreviousDiff = false )
+          DynamicBackgroundProcessor( unsigned char maxNumOfSamplesInAverageImage = MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE, int bigMapRadius = 1000, short int maxstep = 5, bool mergePreviousDiff = MERGE_PREVIOUS_DIFF )
            : pStaticBackground_( nullptr ), pPreviousMask_( nullptr ), maxNumOfSamplesInAverageImage_( maxNumOfSamplesInAverageImage ), bigMapRadius_( bigMapRadius ), maxstep_( maxstep ), mergePreviousDiff_( mergePreviousDiff )
           {
              init();
           }
 
-          DynamicBackgroundProcessor( const cv::Mat& staticBackground, unsigned char maxNumOfSamplesInAverageImage = MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE, int bigMapSize = 1000, short int maxstep = 5, bool mergePreviousDiff = false )
+          DynamicBackgroundProcessor( const cv::Mat& staticBackground, unsigned char maxNumOfSamplesInAverageImage = MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE, int bigMapSize = 1000, short int maxstep = 5, bool mergePreviousDiff = MERGE_PREVIOUS_DIFF )
            : pStaticBackground_( new cv::Mat( staticBackground.clone() ) ), pPreviousMask_( nullptr ), maxNumOfSamplesInAverageImage_( maxNumOfSamplesInAverageImage ), bigMapRadius_( bigMapSize ), maxstep_( maxstep ), mergePreviousDiff_( mergePreviousDiff )
           {
              init();
