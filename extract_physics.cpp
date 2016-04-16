@@ -74,7 +74,7 @@ namespace {
              return true;
           }
 
-          virtual std::string getTitle() const override { return "Processor"; }
+          virtual std::string getTitle() const override { return "Processing"; }
 
           const cv::Mat getResult() const {
              assert( pAverageImage_ );
@@ -128,14 +128,13 @@ namespace {
                 Mat beforeFrame_Masked(getBeforeFrame().size(), getBeforeFrame().type(), cv::Scalar(0,255,0));
                 getBeforeFrame().copyTo( beforeFrame_Masked, foregroundMask );
                 imshow("binary", beforeFrame_Masked );
-                imshow("binary2", getBeforeFrame() );
              }
 
              ImageProcessor::process( frame, dropped );
             
              return true;
           }
-          virtual std::string getTitle() const override { return "Processor"; }
+          virtual std::string getTitle() const override { return "Processing"; }
 
           const cv::Mat getResult() const {
              cv::Mat resultImage( segmentedBackground_.size(), CV_8UC3);
@@ -205,12 +204,10 @@ namespace {
 
              cv::Mat diffStoredBW( after.size(), CV_8U, cvScalar(0.) );
              if ( rx == 0 && ry == 0 ) {
-                imshow("x", diffStoredBW);
                 return diffStoredBW;
              }
 
              cv::threshold( diffStored, diffStoredBW, 0, 255, THRESH_BINARY ); // threshold: 0, everything that was not in the last round
-             imshow("x", diffStoredBW);
              cv::dilate( diffStoredBW, diffStoredBW, getStructuringElement( MORPH_RECT, Size(9,9), Point(5,5) ));
              cv::bitwise_not( diffStoredBW, diffStoredBW );
              cv::bitwise_and( binaryMaskMat, diffStoredBW, diffStoredBW );
