@@ -28,7 +28,9 @@ namespace {
              beforeFrame_ = frame.clone();
              return true;
           }
-          const cv::Mat& getBeforeFrame() { return beforeFrame_; }
+          virtual std::string getTitle() const { return "Unititled"; }
+          const cv::Mat& getBeforeFrame() const { return beforeFrame_; }
+
        private:
           cv::Mat beforeFrame_;
     };
@@ -36,8 +38,54 @@ namespace {
 
     class StaticBackgroundProcessor : public ImageProcessor {
        public:
+          StaticBackgroundProcessor( int param = 200 ) : param_( param ) {}
+          virtual ~StaticBackgroundProcessor() { delete pAverageImage_; }
           virtual bool process( const cv::Mat& frame, bool dropped ) override {
+             if ( !dropped ) {
+                if (frame.empty()) {
+                   return false;
+                }
+
+                cv::Mat diff(getBeforeFrame().size(), getBeforeFrame().type());
+                cv::absdiff(getBeforeFrame(), frame, diff);
+                cv::Mat grayscaleMat( getBeforeFrame().size(), CV_8U);
+                cv::cvtColor( diff, grayscaleMat, CV_BGR2GRAY );
+                cv::Mat binaryMaskMat(grayscaleMat.size(), grayscaleMat.type());
+                cv::threshold(grayscaleMat, binaryMaskMat, 0, 255, cv::THRESH_BINARY);
+                cv::bitwise_not( binaryMaskMat, binaryMaskMat );
+                imshow("one", binaryMaskMat );
+                cv::Mat doubleGrayscaleMate(getBeforeFrame().size(), CV_64F);
+                binaryMaskMat.convertTo( doubleGrayscaleMate, CV_64F, 1. / 255.);
+
+                if ( !pAverageImage_ ) {
+                   pAverageImage_ = new cv::Mat(frame.size(), CV_64F);
+                }
+
+                // Modifying the avg image
+                double dcounter = counter_;
+                cv::addWeighted( *pAverageImage_, dcounter / ( dcounter + 1. ), doubleGrayscaleMate, 1 / ( dcounter + 1. ), 0., *pAverageImage_ );
+                counter_++;
+
+                imshow("average", getResult() );
+             }
+
+             ImageProcessor::process( frame, dropped );
+             return true;
           }
+
+          virtual std::string getTitle() const override { return "Static background processor"; }
+
+          const cv::Mat getResult() const {
+             assert( pAverageImage_ );
+             cv::Mat resultImage( getBeforeFrame().size(), CV_8U);
+             pAverageImage_->convertTo( resultImage, CV_8U, 255.);
+             cv::threshold(resultImage, resultImage, param_, 255, cv::THRESH_BINARY);
+             return resultImage;
+          }
+       private:
+          cv::Mat* pAverageImage_;
+          int counter_ = 0;
+          int param_;
     };
 
     class DynamicBackgroundProcessor : public ImageProcessor {
@@ -76,6 +124,7 @@ namespace {
             
              return true;
           }
+          virtual std::string getTitle() const override { return "Dynamic background processor"; }
        private:
           // Roboust solution for calculating the shift between two frames after each other
           cv::Mat calculateShift( const Mat& before, const Mat& after, short int& rx, short int& ry, long int& sum ) {
@@ -177,7 +226,7 @@ namespace {
     int processShell(VideoCapture& capture, ImageProcessor& processor) {
         int n = 0;
         char filename[200];
-        string window_name = "background extension 2";
+        string window_name = processor.getTitle();
         namedWindow(window_name, CV_WINDOW_KEEPRATIO); //resizable window;
         Mat frame;
         Mat before;
@@ -232,10 +281,15 @@ int main(int ac, char** av) {
         return 1;
     }
 
-    DynamicBackgroundProcessor dbp;
-    if ( !processShell(capture, dbp) ) {
+    StaticBackgroundProcessor sbp;
+    if ( !processShell(capture, sbp) ) {
        return 0;
     }
+
+/*    DynamicBackgroundProcessor dbp;
+    if ( !processShell(capture, dbp) ) {
+       return 0;
+    }*/
 
     return 0;
 }
