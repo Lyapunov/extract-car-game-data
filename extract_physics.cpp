@@ -89,39 +89,42 @@ namespace {
 
     class DynamicBackgroundProcessor : public ImageProcessor {
        public:
-          DynamicBackgroundProcessor( int bigMapSize = 1000, short int maxstep = 5 ) : pStaticBackground_( 0 ), bigMapSize_( bigMapSize ), maxstep_( maxstep ) {
+          DynamicBackgroundProcessor( unsigned char maxNumOfSamplesInAverageImage = 250, int bigMapRadius = 1000, short int maxstep = 5 )
+           : pStaticBackground_( 0 ), maxNumOfSamplesInAverageImage_( maxNumOfSamplesInAverageImage ), bigMapRadius_( bigMapRadius ), maxstep_( maxstep )
+          {
              init();
           }
 
-          DynamicBackgroundProcessor( const cv::Mat& staticBackground, int bigMapSize = 1000, short int maxstep = 5 ) : pStaticBackground_( new cv::Mat( staticBackground.clone() )  ), bigMapSize_( bigMapSize ), maxstep_( maxstep ) {
+          DynamicBackgroundProcessor( const cv::Mat& staticBackground, unsigned char maxNumOfSamplesInAverageImage = 250, int bigMapSize = 1000, short int maxstep = 5 )
+           : pStaticBackground_( new cv::Mat( staticBackground.clone() ) ), maxNumOfSamplesInAverageImage_( maxNumOfSamplesInAverageImage ), bigMapRadius_( bigMapSize ), maxstep_( maxstep )
+          {
              init();
           }
           void init() {
-             segmentedBackground_  = Mat::zeros( bigMapSize_ * 2 + 1, bigMapSize_ * 2 + 1, CV_8UC3 );
-             numOfSamplesInAverage_= Mat::zeros( bigMapSize_ * 2 + 1, bigMapSize_ * 2 + 1, CV_8UC1 );
-             segmentedBackground_.setTo(cv::Scalar(0,255,0));
+             segmentedBackground_  = Mat::zeros( bigMapRadius_ * 2 + 1, bigMapRadius_ * 2 + 1, CV_64FC3 );
+             numOfSamplesInAverage_= Mat::zeros( bigMapRadius_ * 2 + 1, bigMapRadius_ * 2 + 1, CV_8UC1 );
+             segmentedBackground_.setTo(cv::Scalar(0.0,255.0,0.0));
+             numOfSamplesInAverage_.setTo(cv::Scalar(0));
           }
           virtual bool process( const cv::Mat& frame, bool dropped ) override {
              if ( !dropped ) {
                 if (frame.empty()) {
-                    imwrite( "extract_background.png", segmentedBackground_ );
+                    imwrite( "extract_background.png", getResult() );
                     return false;
                 }
                 Mat diff = frame.clone();
             
                 short int dx = 0;
                 short int dy = 0;
-                long sum = 0;
-                Mat foregroundMask = calculateShift(getBeforeFrame(), frame, dx, dy, sum);
-                Mat beforeFrame_Masked(getBeforeFrame().size(), getBeforeFrame().type(), cv::Scalar(0,255,0));
-                getBeforeFrame().copyTo( beforeFrame_Masked, foregroundMask );
-            
-                addToBackground( beforeFrame_Masked, ax_, ay_ );
+                Mat foregroundMask = calculateShift(getBeforeFrame(), frame, dx, dy);
+                addToBackground( getBeforeFrame(), foregroundMask, ax_, ay_ );
             
                 ax_ += dx;
                 ay_ += dy;
-                std::cout << " D(" << dx << ";" << dy << ") -- A(" << ax_ << ";" << ay_ << ") VAL=" << sum << std::endl;
+                std::cout << " D(" << dx << ";" << dy << ") -- A(" << ax_ << ";" << ay_ << ")" << std::endl;
             
+                Mat beforeFrame_Masked(getBeforeFrame().size(), getBeforeFrame().type(), cv::Scalar(0,255,0));
+                getBeforeFrame().copyTo( beforeFrame_Masked, foregroundMask );
                 imshow("binary", beforeFrame_Masked );
              }
 
@@ -130,9 +133,16 @@ namespace {
              return true;
           }
           virtual std::string getTitle() const override { return "Processor"; }
+
+          const cv::Mat getResult() const {
+             cv::Mat resultImage( segmentedBackground_.size(), CV_8UC3);
+             segmentedBackground_.convertTo( resultImage, CV_8UC3);
+             return resultImage;
+          }
+
        private:
           // Roboust solution for calculating the shift between two frames after each other
-          cv::Mat calculateShift( const Mat& before, const Mat& after, short int& rx, short int& ry, long int& sum ) {
+          cv::Mat calculateShift( const Mat& before, const Mat& after, short int& rx, short int& ry ) {
              // Creating the diff image, converting it to binary, then dilate a bit -> filtering out areas with exactly the same pixels
              cv::Mat binaryMaskMat(before.size(), CV_8U);
              if ( pStaticBackground_ ) {
@@ -144,7 +154,7 @@ namespace {
                 cv::Mat grayscaleMat( before.size(), CV_8U);
                 cv::cvtColor( diff, grayscaleMat, CV_BGR2GRAY );
                 cv::threshold(grayscaleMat, binaryMaskMat, 1, 255, cv::THRESH_BINARY);
-                cv::dilate( binaryMaskMat, binaryMaskMat, getStructuringElement( MORPH_RECT, Size(3,3), Point(1,1) ));
+                cv::dilate( binaryMaskMat, binaryMaskMat, getStructuringElement( MORPH_RECT, Size(7,7), Point(3,3) ));
              }
   
              // Do the filter both on the before and on the after image 
@@ -180,12 +190,11 @@ namespace {
                    cv::Mat diff(beforeGrayscaleMasked.size(), beforeGrayscaleMasked.type(), cvScalar(0.));
                    cv::absdiff(beforeGrayscaleMasked, afterGrayscaleMaskedShifted, diff);
                    long pixels = cv::sum( diff )[0];
-                   if ( pixels < minimum || pixels == minimum && rx == 0 && ry == 0 ) {
+                   if ( pixels < minimum ) {
                       rx = -ix; // sorry, I wrote the entire logic in the opposite way and I don't feel like to rewrite everything
                       ry = -iy;
                       minimum = pixels;
                       diff.copyTo( diffStored );
-                      sum = pixels;
                    }
                 }
              }
@@ -203,22 +212,22 @@ namespace {
              }
           }
 
-          void addToBackground( const Mat& img, short int posx, short int posy ) {
+          void addToBackground( const Mat& img, const Mat& mask, short int posx, short int posy ) {
              for(int y=0;y<img.rows;y++) {
                 for(int x=0;x<img.cols;x++) {
-                   int px = bigMapSize_ + x + posx;
-                   int py = bigMapSize_ + y + posy;
-                   //int alpha = ov.at<Vec4b>(y,x)[3];
-                   if (!(img.at<Vec3b>(y,x)[0] == 0 && img.at<Vec3b>(y,x)[1] == 255 && img.at<Vec3b>(y,x)[2] == 0)) {
+                   if ( mask.at<unsigned char>(y, x) == 255 ) {
+                      const int px = bigMapRadius_ + x + posx;
+                      const int py = bigMapRadius_ + y + posy;
                       if ( 0 <= px && px < numOfSamplesInAverage_.cols && 0 <= py && py < numOfSamplesInAverage_.rows ) {
-                         unsigned char oldnums = numOfSamplesInAverage_.at<Vec3b>(py,px)[0];
-                         if (oldnums < 255) {
+                         //if (!(img.at<Vec3b>(y,x)[0] == 0 && img.at<Vec3b>(y,x)[1] == 255 && img.at<Vec3b>(y,x)[2] == 0)) {
+                         unsigned char& numOfSamples = numOfSamplesInAverage_.at<Vec3b>(py,px)[0];
+                         if ( numOfSamples < maxNumOfSamplesInAverageImage_ ) {
                             for (short int i = 0; i < 3; i++) { 
-                               segmentedBackground_.at<Vec3b>(py,px)[i] = 
-                                  (unsigned char) (( int(img.at<Vec3b>(y,x)[i]) + 
-                                                   int(segmentedBackground_.at<Vec3b>(py,px)[i] * oldnums) ) / int(oldnums + 1));
+                               double dNumOfSamples = static_cast<double>( numOfSamples );
+                               double& elem = segmentedBackground_.at<Vec3d>(py,px)[i];
+                               elem = elem * dNumOfSamples/ ( dNumOfSamples + 1. ) + double ( img.at<Vec3b>(y,x)[i] ) * 1. / ( dNumOfSamples + 1. );
                             }
-                            numOfSamplesInAverage_.at<Vec3b>(py,px)[0]++;
+                            numOfSamples++;
                          }
                       }
                    }
@@ -226,15 +235,16 @@ namespace {
              }
           }
 
-          cv::Mat numOfSamplesInAverage_; 
-
-          int ax_ = 0;
-          int ay_ = 0;
-          int bigMapSize_;
+       private:
+          cv::Mat* pStaticBackground_;
+          unsigned char maxNumOfSamplesInAverageImage_;
+          int bigMapRadius_;
           short int maxstep_;
 
           cv::Mat segmentedBackground_;
-          cv::Mat* pStaticBackground_;
+          cv::Mat numOfSamplesInAverage_; 
+          int ax_ = 0;
+          int ay_ = 0;
     };
 
     int processShell(VideoCapture& capture, ImageProcessor& processor) {
