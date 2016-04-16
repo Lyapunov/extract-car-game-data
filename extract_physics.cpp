@@ -92,24 +92,9 @@ namespace {
 
     class DynamicBackgroundProcessor : public ImageProcessor {
        public:
-          DynamicBackgroundProcessor( unsigned char maxNumOfSamplesInAverageImage = MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE, int bigMapRadius = 1000, short int maxstep = 5, bool mergePreviousDiff = MERGE_PREVIOUS_DIFF )
-           : pStaticBackground_( nullptr ), pPreviousMask_( nullptr ), maxNumOfSamplesInAverageImage_( maxNumOfSamplesInAverageImage ), bigMapRadius_( bigMapRadius ), maxstep_( maxstep ), mergePreviousDiff_( mergePreviousDiff )
+          DynamicBackgroundProcessor( const cv::Mat* pStaticBackground = 0, unsigned char maxNumOfSamplesInAverageImage = MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE, int bigMapSize = 1000, short int maxstep = 5, bool mergePreviousDiff = MERGE_PREVIOUS_DIFF )
+           : pStaticBackground_( pStaticBackground ), pPreviousMask_( nullptr ), maxNumOfSamplesInAverageImage_( maxNumOfSamplesInAverageImage ), bigMapRadius_( bigMapSize ), maxstep_( maxstep ), mergePreviousDiff_( mergePreviousDiff )
           {
-             init();
-          }
-
-          DynamicBackgroundProcessor( const cv::Mat& staticBackground, unsigned char maxNumOfSamplesInAverageImage = MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE, int bigMapSize = 1000, short int maxstep = 5, bool mergePreviousDiff = MERGE_PREVIOUS_DIFF )
-           : pStaticBackground_( new cv::Mat( staticBackground.clone() ) ), pPreviousMask_( nullptr ), maxNumOfSamplesInAverageImage_( maxNumOfSamplesInAverageImage ), bigMapRadius_( bigMapSize ), maxstep_( maxstep ), mergePreviousDiff_( mergePreviousDiff )
-          {
-             init();
-          }
-
-          ~DynamicBackgroundProcessor() {
-             delete pStaticBackground_;
-          }
-
-
-          void init() {
              segmentedBackground_  = Mat::zeros( bigMapRadius_ * 2 + 1, bigMapRadius_ * 2 + 1, CV_64FC3 );
              numOfSamplesInAverage_= Mat::zeros( bigMapRadius_ * 2 + 1, bigMapRadius_ * 2 + 1, CV_8UC1 );
              segmentedBackground_.setTo(cv::Scalar(0.0,255.0,0.0));
@@ -259,7 +244,7 @@ namespace {
           }
 
        private:
-          cv::Mat* pStaticBackground_;
+          const cv::Mat* pStaticBackground_;
           cv::Mat* pPreviousMask_;
           unsigned char maxNumOfSamplesInAverageImage_;
           int bigMapRadius_;
@@ -341,8 +326,9 @@ int main(int ac, char** av) {
        capture.release();
 
     }
+    cv::Mat sbpResult = sbp.getResult();
 
-    DynamicBackgroundProcessor dbp( sbp.getResult() );
+    DynamicBackgroundProcessor dbp( &sbpResult );
     {
        VideoCapture capture(arg); //try to open string, this will attempt to open it as a video file
        if (!capture.isOpened()) //if this fails, try to open as a video camera, through the use of an integer param
