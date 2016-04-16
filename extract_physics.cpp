@@ -53,7 +53,6 @@ namespace {
                 cv::Mat binaryMaskMat(grayscaleMat.size(), grayscaleMat.type());
                 cv::threshold(grayscaleMat, binaryMaskMat, 0, 255, cv::THRESH_BINARY);
                 cv::bitwise_not( binaryMaskMat, binaryMaskMat );
-                imshow("one", binaryMaskMat );
                 cv::Mat doubleGrayscaleMate(getBeforeFrame().size(), CV_64F);
                 binaryMaskMat.convertTo( doubleGrayscaleMate, CV_64F, 1. / 255.);
 
@@ -66,14 +65,14 @@ namespace {
                 cv::addWeighted( *pAverageImage_, dcounter / ( dcounter + 1. ), doubleGrayscaleMate, 1 / ( dcounter + 1. ), 0., *pAverageImage_ );
                 counter_++;
 
-                imshow("average", getResult() );
+                imshow("binary", getResult() );
              }
 
              ImageProcessor::process( frame, dropped );
              return true;
           }
 
-          virtual std::string getTitle() const override { return "Static background processor"; }
+          virtual std::string getTitle() const override { return "Processor"; }
 
           const cv::Mat getResult() const {
              assert( pAverageImage_ );
@@ -130,7 +129,7 @@ namespace {
             
              return true;
           }
-          virtual std::string getTitle() const override { return "Dynamic background processor"; }
+          virtual std::string getTitle() const override { return "Processor"; }
        private:
           // Roboust solution for calculating the shift between two frames after each other
           cv::Mat calculateShift( const Mat& before, const Mat& after, short int& rx, short int& ry, long int& sum ) {
@@ -291,15 +290,29 @@ int main(int ac, char** av) {
        }
 
        if ( !processShell(capture, sbp) ) {
+          capture.release();
+       }
+
+    }
+
+    {
+       DynamicBackgroundProcessor dbp( sbp.getResult() );
+
+       VideoCapture capture(arg); //try to open string, this will attempt to open it as a video file
+       if (!capture.isOpened()) //if this fails, try to open as a video camera, through the use of an integer param
+           capture.open(atoi(arg.c_str()));
+       if (!capture.isOpened()) {
+           cerr << "Failed to open a video device or video file!\n" << endl;
+           help(av);
+           return 1;
+       }
+
+       if ( !processShell(capture, dbp) ) {
           return 0;
        }
 
        capture.release();
-    }
-
-/*    {
-       DynamicBackgroundProcessor dbp;
-    } */
+    } 
 
     return 0;
 }
