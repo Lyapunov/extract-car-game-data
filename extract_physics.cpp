@@ -8,6 +8,8 @@
 using namespace cv;
 using namespace std;
 
+const unsigned char MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE = 250;
+
 namespace {
     void help(char** av) {
        std::cout << "\nDo the analysis and extract the physics of the simple car game\n"
@@ -89,13 +91,13 @@ namespace {
 
     class DynamicBackgroundProcessor : public ImageProcessor {
        public:
-          DynamicBackgroundProcessor( unsigned char maxNumOfSamplesInAverageImage = 250, int bigMapRadius = 1000, short int maxstep = 5 )
+          DynamicBackgroundProcessor( unsigned char maxNumOfSamplesInAverageImage = MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE, int bigMapRadius = 1000, short int maxstep = 5 )
            : pStaticBackground_( 0 ), maxNumOfSamplesInAverageImage_( maxNumOfSamplesInAverageImage ), bigMapRadius_( bigMapRadius ), maxstep_( maxstep )
           {
              init();
           }
 
-          DynamicBackgroundProcessor( const cv::Mat& staticBackground, unsigned char maxNumOfSamplesInAverageImage = 250, int bigMapSize = 1000, short int maxstep = 5 )
+          DynamicBackgroundProcessor( const cv::Mat& staticBackground, unsigned char maxNumOfSamplesInAverageImage = MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE, int bigMapSize = 1000, short int maxstep = 5 )
            : pStaticBackground_( new cv::Mat( staticBackground.clone() ) ), maxNumOfSamplesInAverageImage_( maxNumOfSamplesInAverageImage ), bigMapRadius_( bigMapSize ), maxstep_( maxstep )
           {
              init();
@@ -126,6 +128,7 @@ namespace {
                 Mat beforeFrame_Masked(getBeforeFrame().size(), getBeforeFrame().type(), cv::Scalar(0,255,0));
                 getBeforeFrame().copyTo( beforeFrame_Masked, foregroundMask );
                 imshow("binary", beforeFrame_Masked );
+                imshow("binary2", getBeforeFrame() );
              }
 
              ImageProcessor::process( frame, dropped );
@@ -202,14 +205,14 @@ namespace {
              cv::Mat diffStoredBW( after.size(), CV_8U, cvScalar(0.) );
              if ( rx == 0 && ry == 0 ) {
                 return diffStoredBW;
-             } else {
-                cv::threshold( diffStored, diffStoredBW, 3, 255, THRESH_BINARY );
-                cv::dilate( diffStoredBW, diffStoredBW, getStructuringElement( MORPH_RECT, Size(7,7), Point(3,3) ));
-                cv::bitwise_not( diffStoredBW, diffStoredBW );
-                cv::bitwise_and( binaryMaskMat, diffStoredBW, diffStoredBW );
-     
-                return diffStoredBW;
              }
+
+             cv::threshold( diffStored, diffStoredBW, 3, 255, THRESH_BINARY );
+             cv::dilate( diffStoredBW, diffStoredBW, getStructuringElement( MORPH_RECT, Size(7,7), Point(3,3) ));
+             cv::bitwise_not( diffStoredBW, diffStoredBW );
+             cv::bitwise_and( binaryMaskMat, diffStoredBW, diffStoredBW );
+  
+             return diffStoredBW;
           }
 
           void addToBackground( const Mat& img, const Mat& mask, short int posx, short int posy ) {
