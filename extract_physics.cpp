@@ -119,6 +119,7 @@ namespace {
                 short int dx = 0;
                 short int dy = 0;
                 Mat foregroundMask = calculateShift(getBeforeFrame(), frame, dx, dy);
+                cv::erode( foregroundMask, foregroundMask, getStructuringElement( MORPH_RECT, Size(9,9), Point(5,5) ));
                 addToBackground( getBeforeFrame(), foregroundMask, ax_, ay_ );
             
                 ax_ += dx;
@@ -208,7 +209,6 @@ namespace {
              }
 
              cv::threshold( diffStored, diffStoredBW, 0, 255, THRESH_BINARY ); // threshold: 0, everything that was not in the last round
-             cv::dilate( diffStoredBW, diffStoredBW, getStructuringElement( MORPH_RECT, Size(9,9), Point(5,5) ));
              cv::bitwise_not( diffStoredBW, diffStoredBW );
              cv::bitwise_and( binaryMaskMat, diffStoredBW, diffStoredBW );
   
