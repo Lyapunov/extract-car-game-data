@@ -91,14 +91,14 @@ namespace {
 
     class DynamicBackgroundProcessor : public ImageProcessor {
        public:
-          DynamicBackgroundProcessor( unsigned char maxNumOfSamplesInAverageImage = MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE, int bigMapRadius = 1000, short int maxstep = 5 )
-           : pStaticBackground_( nullptr ), maxNumOfSamplesInAverageImage_( maxNumOfSamplesInAverageImage ), bigMapRadius_( bigMapRadius ), maxstep_( maxstep )
+          DynamicBackgroundProcessor( unsigned char maxNumOfSamplesInAverageImage = MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE, int bigMapRadius = 1000, short int maxstep = 5, bool mergePreviousDiff = false )
+           : pStaticBackground_( nullptr ), pPreviousMask_( nullptr ), maxNumOfSamplesInAverageImage_( maxNumOfSamplesInAverageImage ), bigMapRadius_( bigMapRadius ), maxstep_( maxstep ), mergePreviousDiff_( mergePreviousDiff )
           {
              init();
           }
 
-          DynamicBackgroundProcessor( const cv::Mat& staticBackground, unsigned char maxNumOfSamplesInAverageImage = MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE, int bigMapSize = 1000, short int maxstep = 5 )
-           : pStaticBackground_( new cv::Mat( staticBackground.clone() ) ), maxNumOfSamplesInAverageImage_( maxNumOfSamplesInAverageImage ), bigMapRadius_( bigMapSize ), maxstep_( maxstep )
+          DynamicBackgroundProcessor( const cv::Mat& staticBackground, unsigned char maxNumOfSamplesInAverageImage = MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE, int bigMapSize = 1000, short int maxstep = 5, bool mergePreviousDiff = false )
+           : pStaticBackground_( new cv::Mat( staticBackground.clone() ) ), pPreviousMask_( nullptr ), maxNumOfSamplesInAverageImage_( maxNumOfSamplesInAverageImage ), bigMapRadius_( bigMapSize ), maxstep_( maxstep ), mergePreviousDiff_( mergePreviousDiff )
           {
              init();
           }
@@ -128,6 +128,16 @@ namespace {
                 Mat foregroundMask = calculateShift(getBeforeFrame(), frame, dx, dy);
                 Mat totalMask( foregroundMask.size(), foregroundMask.type() ); 
                 foregroundMask.copyTo( totalMask );
+
+                if ( mergePreviousDiff_ ) {
+                   // Managing previous mask and merging it to total
+                   if ( pPreviousMask_ ) {
+                      cv::bitwise_and( *pPreviousMask_, totalMask, totalMask );
+                   } else {
+                      pPreviousMask_ = new cv::Mat( totalMask.size(), totalMask.type() );
+                   }
+                   foregroundMask.copyTo( *pPreviousMask_ );
+                }
 
                 cv::erode( totalMask, totalMask, getStructuringElement( MORPH_RECT, Size(9,9), Point(5,5) ));
                 addToBackground( getBeforeFrame(), totalMask, ax_, ay_ );
@@ -249,9 +259,12 @@ namespace {
 
        private:
           cv::Mat* pStaticBackground_;
+          cv::Mat* pPreviousMask_;
           unsigned char maxNumOfSamplesInAverageImage_;
           int bigMapRadius_;
           short int maxstep_;
+          const bool mergePreviousDiff_;
+
           cv::Mat segmentedBackground_;
           cv::Mat numOfSamplesInAverage_; 
           int ax_ = 0;
