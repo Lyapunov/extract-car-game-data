@@ -272,6 +272,8 @@ namespace {
           int ay_ = 0;
     };
 
+    
+
     int processShell(VideoCapture& capture, ImageProcessor& processor) {
         int n = 0;
         char filename[200];
@@ -340,9 +342,8 @@ int main(int ac, char** av) {
 
     }
 
+    DynamicBackgroundProcessor dbp( sbp.getResult() );
     {
-       DynamicBackgroundProcessor dbp( sbp.getResult() );
-
        VideoCapture capture(arg); //try to open string, this will attempt to open it as a video file
        if (!capture.isOpened()) //if this fails, try to open as a video camera, through the use of an integer param
            capture.open(atoi(arg.c_str()));
