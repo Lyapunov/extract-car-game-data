@@ -189,14 +189,18 @@ namespace {
                    }
                 }
              }
-             
-             cv::Mat diffStoredBW( after.size(), CV_8U );
-             cv::threshold( diffStored, diffStoredBW, 3, 255, THRESH_BINARY );
-             cv::dilate( diffStoredBW, diffStoredBW, getStructuringElement( MORPH_RECT, Size(7,7), Point(3,3) ));
-             cv::bitwise_not( diffStoredBW, diffStoredBW );
-             cv::bitwise_and( binaryMaskMat, diffStoredBW, diffStoredBW );
-  
-             return diffStoredBW;
+
+             cv::Mat diffStoredBW( after.size(), CV_8U, cvScalar(0.) );
+             if ( rx == 0 && ry == 0 ) {
+                return diffStoredBW;
+             } else {
+                cv::threshold( diffStored, diffStoredBW, 3, 255, THRESH_BINARY );
+                cv::dilate( diffStoredBW, diffStoredBW, getStructuringElement( MORPH_RECT, Size(7,7), Point(3,3) ));
+                cv::bitwise_not( diffStoredBW, diffStoredBW );
+                cv::bitwise_and( binaryMaskMat, diffStoredBW, diffStoredBW );
+     
+                return diffStoredBW;
+             }
           }
 
           void addToBackground( const Mat& img, short int posx, short int posy ) {
