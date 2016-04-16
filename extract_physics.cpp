@@ -8,7 +8,7 @@
 using namespace cv;
 using namespace std;
 
-const unsigned char MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE = 1;
+const unsigned char MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE = 250;
 
 namespace {
     void help(char** av) {
