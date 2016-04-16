@@ -92,7 +92,7 @@ namespace {
     class DynamicBackgroundProcessor : public ImageProcessor {
        public:
           DynamicBackgroundProcessor( unsigned char maxNumOfSamplesInAverageImage = MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE, int bigMapRadius = 1000, short int maxstep = 5 )
-           : pStaticBackground_( 0 ), maxNumOfSamplesInAverageImage_( maxNumOfSamplesInAverageImage ), bigMapRadius_( bigMapRadius ), maxstep_( maxstep )
+           : pStaticBackground_( nullptr ), maxNumOfSamplesInAverageImage_( maxNumOfSamplesInAverageImage ), bigMapRadius_( bigMapRadius ), maxstep_( maxstep )
           {
              init();
           }
@@ -102,12 +102,19 @@ namespace {
           {
              init();
           }
+
+          ~DynamicBackgroundProcessor() {
+             delete pStaticBackground_;
+          }
+
+
           void init() {
              segmentedBackground_  = Mat::zeros( bigMapRadius_ * 2 + 1, bigMapRadius_ * 2 + 1, CV_64FC3 );
              numOfSamplesInAverage_= Mat::zeros( bigMapRadius_ * 2 + 1, bigMapRadius_ * 2 + 1, CV_8UC1 );
              segmentedBackground_.setTo(cv::Scalar(0.0,255.0,0.0));
              numOfSamplesInAverage_.setTo(cv::Scalar(0));
           }
+
           virtual bool process( const cv::Mat& frame, bool dropped ) override {
              if ( !dropped ) {
                 if (frame.empty()) {
@@ -119,15 +126,18 @@ namespace {
                 short int dx = 0;
                 short int dy = 0;
                 Mat foregroundMask = calculateShift(getBeforeFrame(), frame, dx, dy);
-                cv::erode( foregroundMask, foregroundMask, getStructuringElement( MORPH_RECT, Size(9,9), Point(5,5) ));
-                addToBackground( getBeforeFrame(), foregroundMask, ax_, ay_ );
+                Mat totalMask( foregroundMask.size(), foregroundMask.type() ); 
+                foregroundMask.copyTo( totalMask );
+
+                cv::erode( totalMask, totalMask, getStructuringElement( MORPH_RECT, Size(9,9), Point(5,5) ));
+                addToBackground( getBeforeFrame(), totalMask, ax_, ay_ );
             
                 ax_ += dx;
                 ay_ += dy;
                 std::cout << " D(" << dx << ";" << dy << ") -- A(" << ax_ << ";" << ay_ << ")" << std::endl;
             
                 Mat beforeFrame_Masked(getBeforeFrame().size(), getBeforeFrame().type(), cv::Scalar(0,255,0));
-                getBeforeFrame().copyTo( beforeFrame_Masked, foregroundMask );
+                getBeforeFrame().copyTo( beforeFrame_Masked, totalMask );
                 imshow("binary", beforeFrame_Masked );
              }
 
@@ -242,7 +252,6 @@ namespace {
           unsigned char maxNumOfSamplesInAverageImage_;
           int bigMapRadius_;
           short int maxstep_;
-
           cv::Mat segmentedBackground_;
           cv::Mat numOfSamplesInAverage_; 
           int ax_ = 0;
@@ -310,9 +319,10 @@ int main(int ac, char** av) {
            return 1;
        }
 
-       if ( !processShell(capture, sbp) ) {
-          capture.release();
+       if ( processShell(capture, sbp) ) {
+           return 0;
        }
+       capture.release();
 
     }
 
