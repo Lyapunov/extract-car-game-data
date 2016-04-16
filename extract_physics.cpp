@@ -40,7 +40,7 @@ namespace {
 
     class StaticBackgroundProcessor : public ImageProcessor {
        public:
-          StaticBackgroundProcessor( int param = 200 ) : param_( param ) {}
+          StaticBackgroundProcessor( int param = 200 ) : pAverageImage_( nullptr ), param_( param ) {}
           virtual ~StaticBackgroundProcessor() { delete pAverageImage_; }
           virtual bool process( const cv::Mat& frame, bool dropped ) override {
              if ( !dropped ) {
