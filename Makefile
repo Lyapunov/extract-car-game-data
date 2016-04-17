@@ -3,7 +3,7 @@
 
 CC = g++
 CFLAGS=-std=c++11 $(shell pkg-config --cflags --libs opencv)
-TARGET=extract_physics
+TARGET=extract_car_game_background_and_car_trajectory
 
 all: $(TARGET)
 $(TARGET): $(TARGET).cpp

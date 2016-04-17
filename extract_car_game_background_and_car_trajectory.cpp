@@ -110,7 +110,7 @@ namespace {
              short int dy = 0;
              if ( !dropped ) {
                 if (frame.empty()) {
-                    imwrite( "extract_background.png", getResult() );
+                    imwrite( "car_game_background.png", getResult() );
                     return false;
                 }
                 Mat diff = frame.clone();
