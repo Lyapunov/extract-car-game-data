@@ -307,7 +307,13 @@ namespace {
 
                 if ( elem != cv::Point( 0, 0 ) ) {
                    cv::floodFill( binaryMaskMat, elem, cvScalar(127.0) );  
-                   cv::Point elem2 = calculateAverage( binaryMaskMat );
+                   cv::Point elem2 = calculateCentroid( binaryMaskMat );
+                   const double rawAngle = 0.5 * atan( 2.0 * calculateMoment( binaryMaskMat, 1, 1 ) / ( calculateMoment( binaryMaskMat, 2, 0 ) - calculateMoment( binaryMaskMat, 0, 2 ) ) );
+                   const double signOfAngle = calculateSignOfAngle( binaryMaskMat, rawAngle );
+                   const double jOfAngle = calculateJ( binaryMaskMat, rawAngle, signOfAngle );
+
+                   const double PI = 3.141592653589793;
+                   const double angle = signOfAngle * rawAngle + PI / 2. * jOfAngle;
 
                    // area is good for measuring the angle of the car. the trick is the distortion of 320 x 200
                    long area = calculateArea( binaryMaskMat );
@@ -320,6 +326,12 @@ namespace {
 
                    cv::Point rad( 5, 5 );
                    cv::rectangle( binaryMaskMat, elem2 - rad, elem2 + rad, cvScalar(255.0) );
+                   
+                   for ( int k = 0; k < 2; ++k ) {
+                      cv::Point2d dir ( cos( angle + PI * k ), sin( angle + PI * k ) );
+                      cv::line( binaryMaskMat, elem2, elem2 + cv::Point( 30. * dir ), cvScalar(255.0) );
+                   }
+
                 } else {
                    center_ = cv::Point( frame.cols / 2, frame.rows / 2 );
                 }
@@ -367,7 +379,7 @@ namespace {
              return cv::Point( 0, 0 );
           }
 
-          cv::Point calculateAverage( const cv::Mat& img ) {
+          cv::Point calculateCentroid( const cv::Mat& img ) {
              double sumx = 0.0;
              double sumy = 0.0;
              long num = 0;
@@ -383,6 +395,97 @@ namespace {
              }
 
              return cv::Point( ( sumx / num ), ( sumy / num ) );
+          }
+
+          double calculateMoment( const cv::Mat& img, double ordX, double ordY ) {
+             double sum = 0.0;
+             long num = 0;
+             cv::Point centroid = calculateCentroid( img );
+
+             for ( int x = 0; x <= img.cols; ++x ) {
+                for ( int y = 0; y <= img.rows; ++y ) {
+                   if ( img.at<unsigned char>( y, x ) == 127 ) {
+                      sum += pow( x - centroid.x, ordX ) * pow( y - centroid.y, ordY );
+                      ++num;
+                   }
+                }
+             }
+
+             return sum / num;
+          }
+
+          double calculateSignOfAngle( const cv::Mat& img, double angle ) {
+             const double PI = 3.141592653589793;
+             int besti = 0;
+             long bestintersect = 0;
+             for ( int i = 0; i <= 1; ++i ) {
+                long intersect = 0;
+                for ( int j = 0; j < 4; ++j ) {
+                   cv::Point2d dir ( cos( static_cast<double>( i* 2.0 - 1.0 ) * angle + PI / 2. * j), sin( static_cast<double>( i* 2.0 - 1.0 ) * angle + PI / 2. * j) );
+                   intersect +=  calculateMirrorIntersect(  img, dir );
+                }
+                if ( intersect > bestintersect ) {
+                   bestintersect = intersect;
+                   besti = i;
+                }
+             }
+             return static_cast<double>(besti) * 2. - 1.;
+          }
+
+          double calculateJ( const cv::Mat& img, double angle, double signOfAngle ) {
+             const double PI = 3.141592653589793;
+             double maxLen = 0.;
+             int maxJ = 0;
+             for ( int j = 0; j < 2; ++j ) {
+                cv::Point2d dir ( cos( signOfAngle * angle + PI / 2. * j), sin( signOfAngle * angle + PI / 2. * j ) );
+                const double len = calculateLen( img, dir );
+                if ( len > maxLen ) {
+                   maxLen = len;
+                   maxJ = j;
+                }
+             }
+             return maxJ;
+          }
+
+
+          long calculateMirrorIntersect( const cv::Mat& img, cv::Point2d mir ) {
+             long intersect = 0;
+             cv::Point2d centroid = calculateCentroid( img );
+
+             for ( int x = 0; x <= img.cols; ++x ) {
+                for ( int y = 0; y <= img.rows; ++y ) {
+                   if ( img.at<unsigned char>( y, x ) == 127 ) {
+                      cv::Point2d dir( x - centroid.x, y - centroid.y );
+                      const double dot = dir.x * mir.x + dir.y * mir.y;
+                      cv::Point2d target = 2.0 * dot * mir - dir;
+
+                      if ( img.at<unsigned char>( target.y + centroid.y, target.x + centroid.x ) == 127 ) {
+                         ++intersect;
+                      }
+                   }
+                }
+             }
+
+             return intersect;
+          }
+
+          long calculateLen( const cv::Mat& img, cv::Point2d mir ) {
+             double len = 0;
+             cv::Point2d centroid = calculateCentroid( img );
+
+             for ( int x = 0; x <= img.cols; ++x ) {
+                for ( int y = 0; y <= img.rows; ++y ) {
+                   if ( img.at<unsigned char>( y, x ) == 127 ) {
+                      cv::Point2d dir( x - centroid.x, y - centroid.y );
+                      const double dot = dir.x * mir.x + dir.y * mir.y;
+                      if ( fabs( dot ) > len ) {
+                         len = fabs( dot );
+                      }
+                   }
+                }
+             }
+
+             return len;
           }
 
           long calculateArea( const cv::Mat& img ) {
