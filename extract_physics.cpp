@@ -267,7 +267,7 @@ namespace {
           CarProcessor( const std::vector<Vec2f>& trajectory,
                         const cv::Mat& background,
                         const cv::Mat& sbpResult)
-           : trajectory_( trajectory ), background_( background ), sbpResult_( sbpResult ), center_( 160, 120 ), radius_( ( background.cols - 1 ) / 2 ), ax_( radius_ ), ay_( radius_ )
+           : trajectory_( trajectory ), background_( background ), sbpResult_( sbpResult ), center_( 160, 100 ), radius_( ( background.cols - 1 ) / 2 ), ax_( radius_ ), ay_( radius_ )
           {}
 
           virtual bool process( const cv::Mat& frame, bool dropped ) override {
@@ -302,25 +302,29 @@ namespace {
                 cv::bitwise_or( binaryMaskMat, sbpResult_, binaryMaskMat );
                 cv::bitwise_not( binaryMaskMat, binaryMaskMat );
 
-                // resize
-                cv::Size size(320,240);
-                cv::Mat binaryMaskMat2(size, CV_8U);
-                cv::resize( binaryMaskMat,binaryMaskMat2,size);
-
                 // detecting our blob
-                cv::Point elem = findNearestBlobInBinaryImage( binaryMaskMat2, center_ );
+                cv::Point elem = findNearestBlobInBinaryImage( binaryMaskMat, center_ );
 
                 if ( elem != cv::Point( 0, 0 ) ) {
-                   cv::floodFill( binaryMaskMat2, elem, cvScalar(127.0) );  
-                   cv::Point elem2 = calculateAverage( binaryMaskMat2 );
+                   cv::floodFill( binaryMaskMat, elem, cvScalar(127.0) );  
+                   cv::Point elem2 = calculateAverage( binaryMaskMat );
+
+                   // area is good for measuring the angle of the car. the trick is the distortion of 320 x 200
+                   long area = calculateArea( binaryMaskMat );
+
+                   // preserving important data
+                   areas_.push_back( area );
+                   places_.push_back( cv::Point( dx + elem2.x, dy + elem2.y ) );
+
                    center_ = elem2;
 
                    cv::Point rad( 5, 5 );
-                   cv::rectangle( binaryMaskMat2, elem2 - rad, elem2 + rad, cvScalar(255.0) );
-                   
+                   cv::rectangle( binaryMaskMat, elem2 - rad, elem2 + rad, cvScalar(255.0) );
+                } else {
+                   center_ = cv::Point( 160, 100 );
                 }
-                imshow("binary" , binaryMaskMat2 );
-             }
+                imshow("binary" , binaryMaskMat );
+             } 
 
              ImageProcessor::process( frame, dropped );
             
@@ -368,6 +372,20 @@ namespace {
              return cv::Point( ( sumx / num ), ( sumy / num ) );
           }
 
+          long calculateArea( const cv::Mat& img ) {
+             long area = 0;
+
+             for ( int x = 0; x <= img.cols; ++x ) {
+                for ( int y = 0; y <= img.rows; ++y ) {
+                   if ( img.at<unsigned char>( y, x ) == 127 ) {
+                      ++area;
+                   }
+                }
+             }
+
+             return area;
+          }
+
 
           const std::vector<Vec2f>& trajectory_;
           const cv::Mat& background_;
@@ -378,6 +396,8 @@ namespace {
           int ay_;
 
           int index_ = 0;
+          std::vector<long> areas_;
+          std::vector<cv::Point> places_;
     };
 
     
