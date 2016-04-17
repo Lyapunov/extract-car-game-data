@@ -1,0 +1,6 @@
+core
+*.o
+extract_physics
+extract_car_game_background_and_car_trajectory
+*.png
+*.avi
