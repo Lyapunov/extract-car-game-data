@@ -262,6 +262,66 @@ namespace {
           int ay_ = 0;
     };
 
+    class CarProcessor : public ImageProcessor {
+       public:
+          CarProcessor( const std::vector<Vec2f>& trajectory,
+                        const cv::Mat& background,
+                        const cv::Mat& sbpResult)
+           : trajectory_( trajectory ), background_( background ), sbpResult_( sbpResult ), radius_( ( background.cols - 1 ) / 2 ), ax_( radius_ ), ay_( radius_ )
+          {}
+
+          virtual bool process( const cv::Mat& frame, bool dropped ) override {
+             short int dx = trajectory_[ index_ ][0];
+             short int dy = trajectory_[ index_ ][1];
+             ax_ += dx;
+             ay_ += dy;
+             index_++;
+
+             if ( !dropped ) {
+                if (frame.empty()) {
+                    return false;
+                }
+                cv::Mat backgroundSlice = background_( cv::Rect(ax_, ay_, 320, 200) );
+
+                // creating diff in HSV
+                cv::Mat hsvFrame( frame.size(), CV_8UC3 );
+                cv::cvtColor( frame, hsvFrame, CV_RGB2HSV );
+                cv::Mat hsvBackgroundSlice( backgroundSlice.size(), CV_8UC3 );
+                cv::cvtColor( backgroundSlice, hsvBackgroundSlice, CV_RGB2HSV );
+                cv::Mat diff(frame.size(), frame.type());
+                cv::absdiff( hsvFrame, hsvBackgroundSlice, diff );
+
+                // breaking it into channels
+                std::vector<cv::Mat> diffChannels(3);
+                split(diff, diffChannels);
+
+                // threshold
+                cv::Mat binaryMaskMat(frame.size(), CV_8U);
+                cv::threshold(diffChannels[0], binaryMaskMat, 20, 255, cv::THRESH_BINARY);
+                cv::bitwise_not( binaryMaskMat, binaryMaskMat );
+                cv::bitwise_or( binaryMaskMat, sbpResult_, binaryMaskMat );
+                cv::bitwise_not( binaryMaskMat, binaryMaskMat );
+
+                imshow("binary" , binaryMaskMat );
+             }
+
+             ImageProcessor::process( frame, dropped );
+            
+             return true;
+          }
+          virtual std::string getTitle() const override { return "Processing"; }
+
+       private:
+          const std::vector<Vec2f>& trajectory_;
+          const cv::Mat& background_;
+          const cv::Mat& sbpResult_;
+          int radius_;
+          int ax_;
+          int ay_;
+
+          int index_ = 0;
+    };
+
     
 
     int processShell(VideoCapture& capture, ImageProcessor& processor) {
@@ -345,13 +405,31 @@ int main(int ac, char** av) {
            return 1;
        }
 
-       if ( !processShell(capture, dbp) ) {
+       if ( processShell(capture, dbp) ) {
           return 0;
        }
 
        capture.release();
     } 
     cv::Mat dbpResult = dbp.getResult();
+
+    CarProcessor cp( trajectory, dbpResult, sbpResult );
+    {
+       VideoCapture capture(arg); //try to open string, this will attempt to open it as a video file
+       if (!capture.isOpened()) //if this fails, try to open as a video camera, through the use of an integer param
+           capture.open(atoi(arg.c_str()));
+       if (!capture.isOpened()) {
+           cerr << "Failed to open a video device or video file!\n" << endl;
+           help(av);
+           return 1;
+       }
+
+       if ( !processShell(capture, cp) ) {
+          return 0;
+       }
+
+       capture.release();
+    } 
 
     return 0;
 }
