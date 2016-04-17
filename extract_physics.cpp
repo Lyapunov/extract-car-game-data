@@ -4,6 +4,7 @@
 #include <vector>
 #include <stdio.h>
 #include <sstream>
+#include <iomanip>
 
 using namespace cv;
 using namespace std;
@@ -13,7 +14,7 @@ const bool MERGE_PREVIOUS_DIFF = false;
 
 namespace {
     void help(char** av) {
-       std::cout << "\nDo the analysis and extract the physics of the simple car game\n"
+       std::cout << "\nDo the analysis and extract the physics of a simple car game\n"
                  << "Usage: " << av[0] << " <video device number>\n"
                  << "OR   : " << av[0] << " <.avi filename>\n"
                  << std::endl;
@@ -133,7 +134,6 @@ namespace {
             
                 ax_ += dx;
                 ay_ += dy;
-                // std::cout << " D(" << dx << ";" << dy << ") -- A(" << ax_ << ";" << ay_ << ")" << std::endl;
             
                 Mat beforeFrame_Masked(getBeforeFrame().size(), getBeforeFrame().type(), cv::Scalar(0,255,0));
                 getBeforeFrame().copyTo( beforeFrame_Masked, totalMask );
@@ -331,6 +331,19 @@ namespace {
              return true;
           }
           virtual std::string getTitle() const override { return "Processing"; }
+          void getResult( std::vector<cv::Point>& places, std::vector<double>& cos ) const {
+             places  = places_;
+             long min_area = *std::min_element( areas_.begin(), areas_.end() );
+             long max_area = *std::max_element( areas_.begin(), areas_.end() );
+
+             // I am not sure it is the correct cosine formula, but I am sleepy and it is a good first approximation
+             cos.clear();
+             for ( const auto& elem : areas_ ) {
+                cos.push_back( ( double( elem ) - min_area ) / double( max_area - min_area ) );
+             }
+
+             assert ( places.size() == cos.size() );
+          }
 
        private:
           cv::Point findNearestBlobInBinaryImage( const cv::Mat& img, const cv::Point center ) {
@@ -502,12 +515,22 @@ int main(int ac, char** av) {
            return 1;
        }
 
-       if ( !processShell(capture, cp) ) {
+       if ( processShell(capture, cp) ) {
           return 0;
        }
 
        capture.release();
     } 
+
+    // printing the results
+    std::cout << "RESULTS" << std::endl;
+    std::cout << "-------" << std::endl;
+    std::vector<cv::Point> places;
+    std::vector<double> cos;
+    cp.getResult( places, cos );
+    for ( int i = 0; i < places.size(); ++i ) {
+       std::cout << places[i].x << " " << places[i].y << " " << std::fixed << std::setprecision(5) << cos[i] << std::endl;
+    }
 
     return 0;
 }
