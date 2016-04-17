@@ -232,7 +232,7 @@ namespace {
                       const int px = bigMapRadius_ + x + posx;
                       const int py = bigMapRadius_ + y + posy;
                       if ( 0 <= px && px < numOfSamplesInAverage_.cols && 0 <= py && py < numOfSamplesInAverage_.rows ) {
-                         unsigned char& numOfSamples = numOfSamplesInAverage_.at<unsigned char>( px, py );
+                         unsigned char& numOfSamples = numOfSamplesInAverage_.at<unsigned char>( py, px );
                          if ( numOfSamples < maxNumOfSamplesInAverageImage_ ) {
                             for (short int i = 0; i < 3; i++) { 
                                double dNumOfSamples = static_cast<double>( numOfSamples );
