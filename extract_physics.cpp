@@ -307,28 +307,28 @@ namespace {
 
                 if ( elem != cv::Point( 0, 0 ) ) {
                    cv::floodFill( binaryMaskMat, elem, cvScalar(127.0) );  
-                   cv::Point elem2 = calculateCentroid( binaryMaskMat );
+                   cv::Point2d centroid = calculateCentroid( binaryMaskMat );
 
                    // orientation
-                   const double rawAngle = 0.5 * atan( 2.0 * calculateMoment( binaryMaskMat, 1, 1 ) / ( calculateMoment( binaryMaskMat, 2, 0 ) - calculateMoment( binaryMaskMat, 0, 2 ) ) );
-                   const double signOfAngle = calculateSignOfAngle( binaryMaskMat, rawAngle );
-                   const double jOfAngle = calculateJ( binaryMaskMat, rawAngle, signOfAngle );
+                   const double rawAngle = 0.5 * atan( 2.0 * calculateMoment( binaryMaskMat, centroid, 1, 1 ) / ( calculateMoment( binaryMaskMat, centroid, 2, 0 ) - calculateMoment( binaryMaskMat, centroid, 0, 2 ) ) );
+                   const double signOfAngle = calculateSignOfAngle( binaryMaskMat, centroid, rawAngle );
+                   const double jOfAngle = calculateJ( binaryMaskMat, centroid, rawAngle, signOfAngle );
 
                    const double PI = 3.141592653589793;
                    const double angle = signOfAngle * rawAngle + PI / 2. * jOfAngle;
 
                    // preserving important data
                    angles_.push_back( angle );
-                   places_.push_back( cv::Point( dx + elem2.x, dy + elem2.y ) );
+                   places_.push_back( cv::Point( dx + centroid.x, dy + centroid.y ) );
 
-                   center_ = elem2;
+                   center_ = centroid;
 
                    cv::Point rad( 5, 5 );
-                   cv::rectangle( binaryMaskMat, elem2 - rad, elem2 + rad, cvScalar(255.0) );
+                   cv::rectangle( binaryMaskMat, center_ - rad, center_ + rad, cvScalar(255.0) );
                    
                    for ( int k = 0; k < 2; ++k ) {
                       cv::Point2d dir ( cos( angle + PI * k ), sin( angle + PI * k ) );
-                      cv::line( binaryMaskMat, elem2, elem2 + cv::Point( 30. * dir ), cvScalar(255.0) );
+                      cv::line( binaryMaskMat, center_, center_ + cv::Point( 30. * dir ), cvScalar(255.0) );
                    }
 
                 } else {
@@ -369,7 +369,7 @@ namespace {
              return cv::Point( 0, 0 );
           }
 
-          cv::Point calculateCentroid( const cv::Mat& img ) {
+          cv::Point2d calculateCentroid( const cv::Mat& img ) {
              double sumx = 0.0;
              double sumy = 0.0;
              long num = 0;
@@ -384,13 +384,12 @@ namespace {
                 }
              }
 
-             return cv::Point( ( sumx / num ), ( sumy / num ) );
+             return cv::Point2d( ( sumx / num ), ( sumy / num ) );
           }
 
-          double calculateMoment( const cv::Mat& img, double ordX, double ordY ) {
+          double calculateMoment( const cv::Mat& img, const cv::Point& centroid, double ordX, double ordY ) {
              double sum = 0.0;
              long num = 0;
-             cv::Point centroid = calculateCentroid( img );
 
              for ( int x = 0; x <= img.cols; ++x ) {
                 for ( int y = 0; y <= img.rows; ++y ) {
@@ -404,7 +403,7 @@ namespace {
              return sum / num;
           }
 
-          double calculateSignOfAngle( const cv::Mat& img, double angle ) {
+          double calculateSignOfAngle( const cv::Mat& img, const cv::Point2d& centroid, double angle ) {
              const double PI = 3.141592653589793;
              int besti = 0;
              long bestintersect = 0;
@@ -412,7 +411,7 @@ namespace {
                 long intersect = 0;
                 for ( int j = 0; j < 4; ++j ) {
                    cv::Point2d dir ( cos( static_cast<double>( i* 2.0 - 1.0 ) * angle + PI / 2. * j), sin( static_cast<double>( i* 2.0 - 1.0 ) * angle + PI / 2. * j) );
-                   intersect +=  calculateMirrorIntersect(  img, dir );
+                   intersect +=  calculateMirrorIntersect( img, centroid, dir );
                 }
                 if ( intersect > bestintersect ) {
                    bestintersect = intersect;
@@ -422,13 +421,13 @@ namespace {
              return static_cast<double>(besti) * 2. - 1.;
           }
 
-          double calculateJ( const cv::Mat& img, double angle, double signOfAngle ) {
+          double calculateJ( const cv::Mat& img, const cv::Point2d& centroid, double angle, double signOfAngle ) {
              const double PI = 3.141592653589793;
              double maxLen = 0.;
              int maxJ = 0;
              for ( int j = 0; j < 2; ++j ) {
                 cv::Point2d dir ( cos( signOfAngle * angle + PI / 2. * j), sin( signOfAngle * angle + PI / 2. * j ) );
-                const double len = calculateLen( img, dir );
+                const double len = calculateLen( img, centroid, dir );
                 if ( len > maxLen ) {
                    maxLen = len;
                    maxJ = j;
@@ -438,9 +437,8 @@ namespace {
           }
 
 
-          long calculateMirrorIntersect( const cv::Mat& img, cv::Point2d mir ) {
+          long calculateMirrorIntersect( const cv::Mat& img, const cv::Point2d& centroid, const cv::Point2d& mir ) {
              long intersect = 0;
-             cv::Point2d centroid = calculateCentroid( img );
 
              for ( int x = 0; x <= img.cols; ++x ) {
                 for ( int y = 0; y <= img.rows; ++y ) {
@@ -459,9 +457,8 @@ namespace {
              return intersect;
           }
 
-          long calculateLen( const cv::Mat& img, cv::Point2d mir ) {
+          long calculateLen( const cv::Mat& img, const cv::Point2d& centroid, cv::Point2d mir ) {
              double len = 0;
-             cv::Point2d centroid = calculateCentroid( img );
 
              for ( int x = 0; x <= img.cols; ++x ) {
                 for ( int y = 0; y <= img.rows; ++y ) {
