@@ -319,7 +319,7 @@ namespace {
 
                    // preserving important data
                    angles_.push_back( angle );
-                   places_.push_back( cv::Point( dx + centroid.x, dy + centroid.y ) );
+                   places_.push_back( cv::Point2d( dx + centroid.x, dy + centroid.y ) );
 
                    center_ = centroid;
 
@@ -342,7 +342,7 @@ namespace {
              return true;
           }
           virtual std::string getTitle() const override { return "Processing"; }
-          void getResult( std::vector<cv::Point>& places, std::vector<double>& angles ) const {
+          void getResult( std::vector<cv::Point2d>& places, std::vector<double>& angles ) const {
              places = places_;
              angles = angles_;
           }
@@ -374,8 +374,8 @@ namespace {
              double sumy = 0.0;
              long num = 0;
 
-             for ( int x = 0; x <= img.cols; ++x ) {
-                for ( int y = 0; y <= img.rows; ++y ) {
+             for ( int x = 0; x < img.cols; ++x ) {
+                for ( int y = 0; y < img.rows; ++y ) {
                    if ( img.at<unsigned char>( y, x ) == 127 ) {
                       sumx += x;
                       sumy += y;
@@ -391,8 +391,8 @@ namespace {
              double sum = 0.0;
              long num = 0;
 
-             for ( int x = 0; x <= img.cols; ++x ) {
-                for ( int y = 0; y <= img.rows; ++y ) {
+             for ( int x = 0; x < img.cols; ++x ) {
+                for ( int y = 0; y < img.rows; ++y ) {
                    if ( img.at<unsigned char>( y, x ) == 127 ) {
                       sum += pow( x - centroid.x, ordX ) * pow( y - centroid.y, ordY );
                       ++num;
@@ -440,8 +440,8 @@ namespace {
           long calculateMirrorIntersect( const cv::Mat& img, const cv::Point2d& centroid, const cv::Point2d& mir ) {
              long intersect = 0;
 
-             for ( int x = 0; x <= img.cols; ++x ) {
-                for ( int y = 0; y <= img.rows; ++y ) {
+             for ( int x = 0; x < img.cols; ++x ) {
+                for ( int y = 0; y < img.rows; ++y ) {
                    if ( img.at<unsigned char>( y, x ) == 127 ) {
                       cv::Point2d dir( x - centroid.x, y - centroid.y );
                       const double dot = dir.x * mir.x + dir.y * mir.y;
@@ -460,8 +460,8 @@ namespace {
           long calculateLen( const cv::Mat& img, const cv::Point2d& centroid, cv::Point2d mir ) {
              double len = 0;
 
-             for ( int x = 0; x <= img.cols; ++x ) {
-                for ( int y = 0; y <= img.rows; ++y ) {
+             for ( int x = 0; x < img.cols; ++x ) {
+                for ( int y = 0; y < img.rows; ++y ) {
                    if ( img.at<unsigned char>( y, x ) == 127 ) {
                       cv::Point2d dir( x - centroid.x, y - centroid.y );
                       const double dot = dir.x * mir.x + dir.y * mir.y;
@@ -485,7 +485,7 @@ namespace {
 
           int index_ = 0;
           std::vector<double> angles_;
-          std::vector<cv::Point> places_;
+          std::vector<cv::Point2d> places_;
     };
 
     
@@ -599,7 +599,7 @@ int main(int ac, char** av) {
 
     // printing the results
     std::cout << "X Y ANGLE" << std::endl;
-    std::vector<cv::Point> places;
+    std::vector<cv::Point2d> places;
     std::vector<double>    angle;
     cp.getResult( places, angle );
     for ( int i = 0; i < places.size(); ++i ) {
