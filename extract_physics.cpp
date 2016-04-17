@@ -267,7 +267,7 @@ namespace {
           CarProcessor( const std::vector<Vec2f>& trajectory,
                         const cv::Mat& background,
                         const cv::Mat& sbpResult)
-           : trajectory_( trajectory ), background_( background ), sbpResult_( sbpResult ), radius_( ( background.cols - 1 ) / 2 ), ax_( radius_ ), ay_( radius_ )
+           : trajectory_( trajectory ), background_( background ), sbpResult_( sbpResult ), center_( 160, 120 ), radius_( ( background.cols - 1 ) / 2 ), ax_( radius_ ), ay_( radius_ )
           {}
 
           virtual bool process( const cv::Mat& frame, bool dropped ) override {
@@ -302,7 +302,24 @@ namespace {
                 cv::bitwise_or( binaryMaskMat, sbpResult_, binaryMaskMat );
                 cv::bitwise_not( binaryMaskMat, binaryMaskMat );
 
-                imshow("binary" , binaryMaskMat );
+                // resize
+                cv::Size size(320,240);
+                cv::Mat binaryMaskMat2(size, CV_8U);
+                cv::resize( binaryMaskMat,binaryMaskMat2,size);
+
+                // detecting our blob
+                cv::Point elem = findNearestBlobInBinaryImage( binaryMaskMat2, center_ );
+
+                if ( elem != cv::Point( 0, 0 ) ) {
+                   cv::floodFill( binaryMaskMat2, elem, cvScalar(127.0) );  
+                   cv::Point elem2 = calculateAverage( binaryMaskMat2 );
+                   center_ = elem2;
+
+                   cv::Point rad( 5, 5 );
+                   cv::rectangle( binaryMaskMat2, elem2 - rad, elem2 + rad, cvScalar(255.0) );
+                   
+                }
+                imshow("binary" , binaryMaskMat2 );
              }
 
              ImageProcessor::process( frame, dropped );
@@ -312,9 +329,50 @@ namespace {
           virtual std::string getTitle() const override { return "Processing"; }
 
        private:
+          cv::Point findNearestBlobInBinaryImage( const cv::Mat& img, const cv::Point center ) {
+             const int border = 20;
+             int cx = center.x;
+             int cy = center.y;
+             int maxrad = ( cx < cy ? cx : cy );
+
+             for ( int radius = 0; radius < maxrad; ++radius ) {
+                for ( int x = cx - radius; x <= cx + radius; ++x ) {
+                   for ( int y = cy - radius; y <= cy + radius; ++y ) {
+                      if ( border < x && x < img.cols - border &&
+                           border < y && y < img.rows - border ) {
+                         if ( img.at<unsigned char>( y, x ) == 255 ) {
+                            return cv::Point( x, y );
+                         }
+                      }
+                   }
+                }
+             }
+             return cv::Point( 0, 0 );
+          }
+
+          cv::Point calculateAverage( const cv::Mat& img ) {
+             double sumx = 0.0;
+             double sumy = 0.0;
+             long num = 0;
+
+             for ( int x = 0; x <= img.cols; ++x ) {
+                for ( int y = 0; y <= img.rows; ++y ) {
+                   if ( img.at<unsigned char>( y, x ) == 127 ) {
+                      sumx += x;
+                      sumy += y;
+                      ++num;
+                   }
+                }
+             }
+
+             return cv::Point( ( sumx / num ), ( sumy / num ) );
+          }
+
+
           const std::vector<Vec2f>& trajectory_;
           const cv::Mat& background_;
           const cv::Mat& sbpResult_;
+          cv::Point center_;
           int radius_;
           int ax_;
           int ay_;
