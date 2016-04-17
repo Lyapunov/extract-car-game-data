@@ -267,7 +267,7 @@ namespace {
           CarProcessor( const std::vector<Vec2f>& trajectory,
                         const cv::Mat& background,
                         const cv::Mat& sbpResult)
-           : trajectory_( trajectory ), background_( background ), sbpResult_( sbpResult ), center_( 160, 100 ), radius_( ( background.cols - 1 ) / 2 ), ax_( radius_ ), ay_( radius_ )
+           : trajectory_( trajectory ), background_( background ), sbpResult_( sbpResult ), center_( sbpResult.cols / 2, sbpResult.rows / 2 ), radius_( ( background.cols - 1 ) / 2 ), ax_( radius_ ), ay_( radius_ )
           {}
 
           virtual bool process( const cv::Mat& frame, bool dropped ) override {
@@ -321,7 +321,7 @@ namespace {
                    cv::Point rad( 5, 5 );
                    cv::rectangle( binaryMaskMat, elem2 - rad, elem2 + rad, cvScalar(255.0) );
                 } else {
-                   center_ = cv::Point( 160, 100 );
+                   center_ = cv::Point( frame.cols / 2, frame.rows / 2 );
                 }
                 imshow("binary" , binaryMaskMat );
              } 
@@ -523,13 +523,12 @@ int main(int ac, char** av) {
     } 
 
     // printing the results
-    std::cout << "RESULTS" << std::endl;
-    std::cout << "-------" << std::endl;
+    std::cout << "X Y ANGCOS" << std::endl;
     std::vector<cv::Point> places;
     std::vector<double> cos;
     cp.getResult( places, cos );
     for ( int i = 0; i < places.size(); ++i ) {
-       std::cout << places[i].x << " " << places[i].y << " " << std::fixed << std::setprecision(5) << cos[i] << std::endl;
+       std::cout << std::fixed << std::setprecision(5) << places[i].x << " " << places[i].y << " " << cos[i] << std::endl;
     }
 
     return 0;
