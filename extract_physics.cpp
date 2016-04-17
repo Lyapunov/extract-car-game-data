@@ -308,6 +308,8 @@ namespace {
                 if ( elem != cv::Point( 0, 0 ) ) {
                    cv::floodFill( binaryMaskMat, elem, cvScalar(127.0) );  
                    cv::Point elem2 = calculateCentroid( binaryMaskMat );
+
+                   // orientation
                    const double rawAngle = 0.5 * atan( 2.0 * calculateMoment( binaryMaskMat, 1, 1 ) / ( calculateMoment( binaryMaskMat, 2, 0 ) - calculateMoment( binaryMaskMat, 0, 2 ) ) );
                    const double signOfAngle = calculateSignOfAngle( binaryMaskMat, rawAngle );
                    const double jOfAngle = calculateJ( binaryMaskMat, rawAngle, signOfAngle );
@@ -315,11 +317,8 @@ namespace {
                    const double PI = 3.141592653589793;
                    const double angle = signOfAngle * rawAngle + PI / 2. * jOfAngle;
 
-                   // area is good for measuring the angle of the car. the trick is the distortion of 320 x 200
-                   long area = calculateArea( binaryMaskMat );
-
                    // preserving important data
-                   areas_.push_back( area );
+                   angles_.push_back( angle );
                    places_.push_back( cv::Point( dx + elem2.x, dy + elem2.y ) );
 
                    center_ = elem2;
@@ -343,18 +342,9 @@ namespace {
              return true;
           }
           virtual std::string getTitle() const override { return "Processing"; }
-          void getResult( std::vector<cv::Point>& places, std::vector<double>& cos ) const {
-             places  = places_;
-             long min_area = *std::min_element( areas_.begin(), areas_.end() );
-             long max_area = *std::max_element( areas_.begin(), areas_.end() );
-
-             // I am not sure it is the correct cosine formula, but I am sleepy and it is a good first approximation
-             cos.clear();
-             for ( const auto& elem : areas_ ) {
-                cos.push_back( ( double( elem ) - min_area ) / double( max_area - min_area ) );
-             }
-
-             assert ( places.size() == cos.size() );
+          void getResult( std::vector<cv::Point>& places, std::vector<double>& angles ) const {
+             places = places_;
+             angles = angles_;
           }
 
        private:
@@ -488,21 +478,6 @@ namespace {
              return len;
           }
 
-          long calculateArea( const cv::Mat& img ) {
-             long area = 0;
-
-             for ( int x = 0; x <= img.cols; ++x ) {
-                for ( int y = 0; y <= img.rows; ++y ) {
-                   if ( img.at<unsigned char>( y, x ) == 127 ) {
-                      ++area;
-                   }
-                }
-             }
-
-             return area;
-          }
-
-
           const std::vector<Vec2f>& trajectory_;
           const cv::Mat& background_;
           const cv::Mat& sbpResult_;
@@ -512,7 +487,7 @@ namespace {
           int ay_;
 
           int index_ = 0;
-          std::vector<long> areas_;
+          std::vector<double> angles_;
           std::vector<cv::Point> places_;
     };
 
@@ -626,12 +601,12 @@ int main(int ac, char** av) {
     } 
 
     // printing the results
-    std::cout << "X Y ANGCOS" << std::endl;
+    std::cout << "X Y ANGLE" << std::endl;
     std::vector<cv::Point> places;
-    std::vector<double> cos;
-    cp.getResult( places, cos );
+    std::vector<double>    angle;
+    cp.getResult( places, angle );
     for ( int i = 0; i < places.size(); ++i ) {
-       std::cout << std::fixed << std::setprecision(5) << places[i].x << " " << places[i].y << " " << cos[i] << std::endl;
+       std::cout << std::fixed << std::setprecision(5) << places[i].x << " " << places[i].y << " " << angle[i] << std::endl;
     }
 
     return 0;
