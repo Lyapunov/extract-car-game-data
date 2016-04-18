@@ -471,8 +471,12 @@ namespace {
                       const double dot = dir.x * mir.x + dir.y * mir.y;
                       cv::Point2d target = 2.0 * dot * mir - dir;
 
-                      if ( img.at<unsigned char>( target.y + centroid.y, target.x + centroid.x ) == 127 ) {
-                         ++intersect;
+                      int pointx = target.x + centroid.x;
+                      int pointy = target.y + centroid.y;
+                      if ( 0 <= pointx && pointx < img.cols && 0 <= pointy < img.rows ) {
+                         if ( img.at<unsigned char>( pointy, pointx ) == 127 ) {
+                            ++intersect;
+                         }
                       }
                    }
                 }
