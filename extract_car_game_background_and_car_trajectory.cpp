@@ -313,26 +313,26 @@ namespace {
                    const double rawAngle = 0.5 * atan( 2.0 * calculateMoment( binaryMaskMat, centroid, 1, 1 ) / ( calculateMoment( binaryMaskMat, centroid, 2, 0 ) - calculateMoment( binaryMaskMat, centroid, 0, 2 ) ) );
                    const double signOfAngle = calculateSignOfAngle( binaryMaskMat, centroid, rawAngle );
                    const double jOfAngle = calculateJ( binaryMaskMat, centroid, rawAngle, signOfAngle );
+                   const double kOfAngle = calculateK( binaryMaskMat, centroid, rawAngle, signOfAngle, jOfAngle );
 
                    const double PI = 3.141592653589793;
-                   const double angle = signOfAngle * rawAngle + PI / 2. * jOfAngle;
+                   double angle = correctInterval( signOfAngle * rawAngle + PI / 2. * jOfAngle + PI * kOfAngle );
 
                    // preserving important data
                    angles_.push_back( angle );
                    places_.push_back( cv::Point2d( dx + centroid.x, dy + centroid.y ) );
-
                    center_ = centroid;
+                   angleVect_ = cv::Point2d( cos( angle ), sin( angle ) );
 
+                   // drawing debug data
                    cv::Point rad( 5, 5 );
                    cv::rectangle( binaryMaskMat, center_ - rad, center_ + rad, cvScalar(255.0) );
-                   
-                   for ( int k = 0; k < 2; ++k ) {
-                      cv::Point2d dir ( cos( angle + PI * k ), sin( angle + PI * k ) );
-                      cv::line( binaryMaskMat, center_, center_ + cv::Point( 30. * dir ), cvScalar(255.0) );
-                   }
+                   cv::Point2d dir ( cos( angle + PI ), sin( angle + PI ) );
+                   cv::line( binaryMaskMat, center_, center_ + cv::Point( 30. * dir ), cvScalar(255.0) );
 
                 } else {
                    center_ = cv::Point( frame.cols / 2, frame.rows / 2 );
+                   angleVect_ = cv::Point2d( 0., 0. );
                 }
                 imshow("binary" , binaryMaskMat );
              } 
@@ -436,6 +436,30 @@ namespace {
              return maxJ;
           }
 
+          double calculateK( const cv::Mat& img, const cv::Point2d& centroid, double angle, double signOfAngle, double jOfAngle ) {
+             const double PI = 3.141592653589793;
+             cv::Point2d helper = angleVect_;
+             if ( helper.x == 0. || helper.y == 0 ) {
+                helper = centroid;
+                helper -= cv::Point2d( center_.x, center_.y );
+             }
+             cv::Point2d dir ( cos( signOfAngle * angle + PI / 2. * jOfAngle), sin( signOfAngle * angle + PI / 2. * jOfAngle ) );
+             if ( dir.x * helper.x + dir.y * helper.y < 0 ) {
+                return 1.0;
+             }
+             return 0.0;
+          }
+
+          double correctInterval( double angle ) {
+             const double PI = 3.141592653589793;
+             while ( angle < 0.0 ) {
+                angle += 2 * PI;
+             }
+             while ( angle > 2 * PI ) {
+                angle -= 2 * PI;
+             }
+             return angle;
+          }
 
           long calculateMirrorIntersect( const cv::Mat& img, const cv::Point2d& centroid, const cv::Point2d& mir ) {
              long intersect = 0;
@@ -479,6 +503,7 @@ namespace {
           const cv::Mat& background_;
           const cv::Mat& sbpResult_;
           cv::Point center_;
+          cv::Point2d angleVect_;
           int radius_;
           int ax_;
           int ay_;
