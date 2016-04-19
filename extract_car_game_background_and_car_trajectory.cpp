@@ -305,8 +305,17 @@ namespace {
                 // detecting our blob
                 cv::Point elem = findNearestBlobInBinaryImage( binaryMaskMat, center_ );
 
+                // distortion removal, basic version, TODO: improve
+                const double distortion = static_cast<double>( binaryMaskMat.cols ) * 3. / 4. / static_cast<double>( binaryMaskMat.rows );
+                cv::Size undistortedSize( binaryMaskMat.cols, binaryMaskMat.rows * distortion );
+
                 if ( elem != cv::Point( 0, 0 ) ) {
                    cv::floodFill( binaryMaskMat, elem, cvScalar(127.0) );  
+                   cv::Point2d centroidDistorted = calculateCentroid( binaryMaskMat );
+                   center_  = centroidDistorted;
+
+                   // remove distortion
+                   cv::resize( binaryMaskMat, binaryMaskMat, undistortedSize );
                    cv::Point2d centroid = calculateCentroid( binaryMaskMat );
 
                    // orientation
@@ -320,20 +329,20 @@ namespace {
 
                    // preserving important data
                    angles_.push_back( angle );
-                   places_.push_back( cv::Point2d( dx + centroid.x, dy + centroid.y ) );
-                   center_ = centroid;
+                   places_.push_back( cv::Point2d( dx + centroidDistorted.x, ( dy + centroidDistorted.y ) * 1.2 ) );
                    angleVect_ = cv::Point2d( cos( angle ), sin( angle ) );
 
                    // drawing debug data
-                   cv::Point rad( 5, 5 );
-                   cv::rectangle( binaryMaskMat, center_ - rad, center_ + rad, cvScalar(255.0) );
+                   cv::Point2d rad( 5, 5 );
+                   cv::rectangle( binaryMaskMat, centroid - rad, centroid + rad, cvScalar(255.0) );
                    cv::Point2d dir ( cos( angle + PI ), sin( angle + PI ) );
-                   cv::line( binaryMaskMat, center_, center_ + cv::Point( 30. * dir ), cvScalar(255.0) );
+                   cv::line( binaryMaskMat, centroid, centroid + cv::Point2d( 30. * dir ), cvScalar(255.0) );
 
                 } else {
                    center_ = cv::Point( frame.cols / 2, frame.rows / 2 );
                    angleVect_ = cv::Point2d( 0., 0. );
                 }
+                cv::resize( binaryMaskMat, binaryMaskMat, undistortedSize ); // two resize it not much worse just one
                 imshow("binary" , binaryMaskMat );
              } 
 
