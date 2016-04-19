@@ -267,7 +267,7 @@ namespace {
           CarProcessor( const std::vector<Vec2f>& trajectory,
                         const cv::Mat& background,
                         const cv::Mat& sbpResult)
-           : trajectory_( trajectory ), background_( background ), sbpResult_( sbpResult ), center_( sbpResult.cols / 2, sbpResult.rows / 2 ), radius_( ( background.cols - 1 ) / 2 ), ax_( radius_ ), ay_( radius_ )
+           : trajectory_( trajectory ), background_( background ), sbpResult_( sbpResult ), centroidDistorted_( sbpResult.cols / 2, sbpResult.rows / 2 ), centroid_( 0., 0. ), radius_( ( background.cols - 1 ) / 2 ), ax_( radius_ ), ay_( radius_ )
           {}
 
           virtual bool process( const cv::Mat& frame, bool dropped ) override {
@@ -303,16 +303,16 @@ namespace {
                 cv::bitwise_not( binaryMaskMat, binaryMaskMat );
 
                 // detecting our blob
-                cv::Point elem = findNearestBlobInBinaryImage( binaryMaskMat, center_ );
+                cv::Point elem = findNearestBlobInBinaryImage( binaryMaskMat, centroidDistorted_ );
 
                 // distortion removal, basic version, TODO: improve
-                const double distortion = static_cast<double>( binaryMaskMat.cols ) * 3. / 4. / static_cast<double>( binaryMaskMat.rows );
+//                const double distortion = static_cast<double>( binaryMaskMat.cols ) * 3. / 4. / static_cast<double>( binaryMaskMat.rows );
+                const double distortion = 1.0;
                 cv::Size undistortedSize( binaryMaskMat.cols, binaryMaskMat.rows * distortion );
 
                 if ( elem != cv::Point( 0, 0 ) ) {
                    cv::floodFill( binaryMaskMat, elem, cvScalar(127.0) );  
                    cv::Point2d centroidDistorted = calculateCentroid( binaryMaskMat );
-                   center_  = centroidDistorted;
 
                    // remove distortion
                    cv::resize( binaryMaskMat, binaryMaskMat, undistortedSize );
@@ -322,15 +322,19 @@ namespace {
                    const double rawAngle = 0.5 * atan( 2.0 * calculateMoment( binaryMaskMat, centroid, 1, 1 ) / ( calculateMoment( binaryMaskMat, centroid, 2, 0 ) - calculateMoment( binaryMaskMat, centroid, 0, 2 ) ) );
                    const double signOfAngle = calculateSignOfAngle( binaryMaskMat, centroid, rawAngle );
                    const double jOfAngle = calculateJ( binaryMaskMat, centroid, rawAngle, signOfAngle );
-                   const double kOfAngle = calculateK( binaryMaskMat, centroid, rawAngle, signOfAngle, jOfAngle );
+                   const double kOfAngle = calculateK( binaryMaskMat, centroid, centroid_, rawAngle, signOfAngle, jOfAngle );
 
                    const double PI = 3.141592653589793;
                    double angle = correctInterval( signOfAngle * rawAngle + PI / 2. * jOfAngle + PI * kOfAngle );
 
                    // preserving important data
                    angles_.push_back( angle );
-                   places_.push_back( cv::Point2d( dx + centroidDistorted.x, ( dy + centroidDistorted.y ) * 1.2 ) );
-                   angleVect_ = cv::Point2d( cos( angle ), sin( angle ) );
+                   places_.push_back( cv::Point2d( dx + centroidDistorted.x, ( dy + centroidDistorted.y ) * distortion ) );
+                   if ( angleVect_.x == 0. && angleVect_.y == 0. || angleVect_.x * cos( angle )  + angleVect_.y * sin( angle ) > 0. ) {
+                      angleVect_ = cv::Point2d( cos( angle ), sin( angle ) );
+                   }
+                   centroidDistorted_ = centroidDistorted;
+                   centroid_ = centroid;
 
                    // drawing debug data
                    cv::Point2d rad( 5, 5 );
@@ -339,10 +343,11 @@ namespace {
                    cv::line( binaryMaskMat, centroid, centroid + cv::Point2d( 30. * dir ), cvScalar(255.0) );
 
                 } else {
-                   center_ = cv::Point( frame.cols / 2, frame.rows / 2 );
+                   centroidDistorted_ = cv::Point( frame.cols / 2, frame.rows / 2 );
+                   cv::resize( binaryMaskMat, binaryMaskMat, undistortedSize );
+                   centroid_ = cv::Point( frame.cols / 2, frame.rows / 2 );
                    angleVect_ = cv::Point2d( 0., 0. );
                 }
-                cv::resize( binaryMaskMat, binaryMaskMat, undistortedSize ); // two resize it not much worse just one
                 imshow("binary" , binaryMaskMat );
              } 
 
@@ -445,12 +450,11 @@ namespace {
              return maxJ;
           }
 
-          double calculateK( const cv::Mat& img, const cv::Point2d& centroid, double angle, double signOfAngle, double jOfAngle ) {
+          double calculateK( const cv::Mat& img, const cv::Point2d& centroid, const cv::Point2d& previousCentroid, double angle, double signOfAngle, double jOfAngle ) {
              const double PI = 3.141592653589793;
              cv::Point2d helper = angleVect_;
              if ( helper.x == 0. || helper.y == 0 ) {
-                helper = centroid;
-                helper -= cv::Point2d( center_.x, center_.y );
+                helper = centroid - previousCentroid;
              }
              cv::Point2d dir ( cos( signOfAngle * angle + PI / 2. * jOfAngle), sin( signOfAngle * angle + PI / 2. * jOfAngle ) );
              if ( dir.x * helper.x + dir.y * helper.y < 0 ) {
@@ -515,7 +519,8 @@ namespace {
           const std::vector<Vec2f>& trajectory_;
           const cv::Mat& background_;
           const cv::Mat& sbpResult_;
-          cv::Point center_;
+          cv::Point2d centroidDistorted_;
+          cv::Point2d centroid_;
           cv::Point2d angleVect_;
           int radius_;
           int ax_;
