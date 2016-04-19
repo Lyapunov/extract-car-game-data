@@ -345,7 +345,6 @@ namespace {
                 } else {
                    centroidDistorted_ = cv::Point( binaryMaskMat.cols / 2, binaryMaskMat.rows / 2 );
                    cv::resize( binaryMaskMat, binaryMaskMat, undistortedSize );
-                   centroid_ = cv::Point( binaryMaskMat.cols / 2, binaryMaskMat.rows / 2 );
                    angleVect_ = cv::Point2d( 0., 0. );
                 }
                 imshow("binary" , binaryMaskMat );
