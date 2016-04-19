@@ -306,8 +306,7 @@ namespace {
                 cv::Point elem = findNearestBlobInBinaryImage( binaryMaskMat, centroidDistorted_ );
 
                 // distortion removal, basic version, TODO: improve
-//                const double distortion = static_cast<double>( binaryMaskMat.cols ) * 3. / 4. / static_cast<double>( binaryMaskMat.rows );
-                const double distortion = 1.0;
+                const double distortion = static_cast<double>( binaryMaskMat.cols ) * 3. / 4. / static_cast<double>( binaryMaskMat.rows );
                 cv::Size undistortedSize( binaryMaskMat.cols, binaryMaskMat.rows * distortion );
 
                 if ( elem != cv::Point( 0, 0 ) ) {
@@ -330,8 +329,10 @@ namespace {
                    // preserving important data
                    angles_.push_back( angle );
                    places_.push_back( cv::Point2d( dx + centroidDistorted.x, ( dy + centroidDistorted.y ) * distortion ) );
-                   if ( angleVect_.x == 0. && angleVect_.y == 0. || angleVect_.x * cos( angle )  + angleVect_.y * sin( angle ) > 0. ) {
+                   if ( angleVect_.x == 0. && angleVect_.y == 0. || angleVect_.x * cos( angle )  + angleVect_.y * sin( angle ) > 0.5 ) {
                       angleVect_ = cv::Point2d( cos( angle ), sin( angle ) );
+                   } else {
+                      angleVect_ = cv::Point2d( 0., 0. );
                    }
                    centroidDistorted_ = centroidDistorted;
                    centroid_ = centroid;
