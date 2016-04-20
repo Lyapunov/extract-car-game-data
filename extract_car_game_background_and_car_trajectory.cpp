@@ -267,7 +267,7 @@ namespace {
           CarProcessor( const std::vector<Vec2f>& trajectory,
                         const cv::Mat& background,
                         const cv::Mat& sbpResult)
-           : trajectory_( trajectory ), background_( background ), sbpResult_( sbpResult ), centroidDistorted_( sbpResult.cols / 2, sbpResult.rows / 2 ), centroid_( 0., 0. ), radius_( ( background.cols - 1 ) / 2 ), ax_( radius_ ), ay_( radius_ )
+           : trajectory_( trajectory ), background_( background ), sbpResult_( sbpResult ), centroidDistorted_( sbpResult.cols / 2, sbpResult.rows / 2 ), centroid_( 0.0, 0.0 ), radius_( ( background.cols - 1 ) / 2 ), ax_( radius_ ), ay_( radius_ )
           {}
 
           virtual bool process( const cv::Mat& frame, bool dropped ) override {
@@ -317,6 +317,9 @@ namespace {
                    cv::resize( binaryMaskMat, binaryMaskMat, undistortedSize );
                    cv::Point2d centroid = calculateCentroid( binaryMaskMat );
 
+                   // absolute position
+                   cv::Point2d absPos( dx + centroidDistorted.x, ( dy + centroidDistorted.y ) * distortion );
+
                    // orientation
                    const double rawAngle = 0.5 * atan( 2.0 * calculateMoment( binaryMaskMat, centroid, 1, 1 ) / ( calculateMoment( binaryMaskMat, centroid, 2, 0 ) - calculateMoment( binaryMaskMat, centroid, 0, 2 ) ) );
                    const double signOfAngle = calculateSignOfAngle( binaryMaskMat, centroid, rawAngle );
@@ -328,7 +331,7 @@ namespace {
 
                    // preserving important data
                    angles_.push_back( angle );
-                   places_.push_back( cv::Point2d( dx + centroidDistorted.x, ( dy + centroidDistorted.y ) * distortion ) );
+                   places_.push_back( absPos  );
                    if ( angleVect_.x == 0. && angleVect_.y == 0. || angleVect_.x * cos( angle )  + angleVect_.y * sin( angle ) > 0.5 ) {
                       angleVect_ = cv::Point2d( cos( angle ), sin( angle ) );
                    } else {
@@ -344,8 +347,9 @@ namespace {
                    cv::line( binaryMaskMat, centroid, centroid + cv::Point2d( 30. * dir ), cvScalar(255.0) );
 
                 } else {
-                   centroidDistorted_ = cv::Point( binaryMaskMat.cols / 2, binaryMaskMat.rows / 2 );
+                   centroidDistorted_ = estimateCentroid( binaryMaskMat );
                    cv::resize( binaryMaskMat, binaryMaskMat, undistortedSize );
+                   centroid_ = estimateCentroid( binaryMaskMat );
                    angleVect_ = cv::Point2d( 0., 0. );
                 }
                 imshow("binary" , binaryMaskMat );
@@ -382,6 +386,33 @@ namespace {
              }
              return cv::Point( 0, 0 );
           }
+
+          cv::Point2d estimateCentroid( const cv::Mat& img ) {
+             cv::Point2d lower( img.cols, img.rows);
+             cv::Point2d upper( 0.0, 0.0 );
+
+             for ( int x = 0; x < img.cols; ++x ) {
+                for ( int y = 0; y < img.rows; ++y ) {
+                   if ( img.at<unsigned char>( y, x ) > 0 ) {
+                      if ( x > upper.x ) {
+                         upper.x = x;
+                      }
+                      if ( x < lower.x ) {
+                         lower.x = x;
+                      }
+                      if ( y > upper.y ) {
+                         upper.y = y;
+                      }
+                      if ( y < lower.y ) {
+                         lower.y = y;
+                      }
+                   }
+                }
+             }
+
+             return ( lower + upper ) / 2.;
+          }
+
 
           cv::Point2d calculateCentroid( const cv::Mat& img ) {
              double sumx = 0.0;
