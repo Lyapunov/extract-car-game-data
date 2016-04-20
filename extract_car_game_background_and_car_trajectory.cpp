@@ -332,7 +332,7 @@ namespace {
                    // preserving important data
                    angles_.push_back( angle );
                    places_.push_back( absPos  );
-                   if ( angleVect_.x == 0. && angleVect_.y == 0. || angleVect_.x * cos( angle )  + angleVect_.y * sin( angle ) > 0.5 ) {
+                   if ( angleVect_.x == 0. && angleVect_.y == 0. || angleVect_.x * cos( angle )  + angleVect_.y * sin( angle ) > 0.85 ) {
                       angleVect_ = cv::Point2d( cos( angle ), sin( angle ) );
                    } else {
                       angleVect_ = cv::Point2d( 0., 0. );
