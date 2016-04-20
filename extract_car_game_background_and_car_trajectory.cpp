@@ -324,19 +324,23 @@ namespace {
                    const double rawAngle = 0.5 * atan( 2.0 * calculateMoment( binaryMaskMat, centroid, 1, 1 ) / ( calculateMoment( binaryMaskMat, centroid, 2, 0 ) - calculateMoment( binaryMaskMat, centroid, 0, 2 ) ) );
                    const double signOfAngle = calculateSignOfAngle( binaryMaskMat, centroid, rawAngle );
                    const double jOfAngle = calculateJ( binaryMaskMat, centroid, rawAngle, signOfAngle );
-                   const double kOfAngle = calculateK( binaryMaskMat, centroid, centroid_, rawAngle, signOfAngle, jOfAngle );
+                   cv::Point2d helper = angleVect_;
+                   if ( angleVect_.x == 0. && angleVect_.y == 0. ) {
+                      helper = centroid - centroid_;
+                   }
+                   const double kOfAngle = calculateK( binaryMaskMat, helper, rawAngle, signOfAngle, jOfAngle );
 
                    const double PI = 3.141592653589793;
                    double angle = correctInterval( signOfAngle * rawAngle + PI / 2. * jOfAngle + PI * kOfAngle );
 
                    // preserving important data
-                   angles_.push_back( angle );
-                   places_.push_back( absPos  );
                    if ( angleVect_.x == 0. && angleVect_.y == 0. || angleVect_.x * cos( angle )  + angleVect_.y * sin( angle ) > 0.85 ) {
                       angleVect_ = cv::Point2d( cos( angle ), sin( angle ) );
                    } else {
-                      angleVect_ = cv::Point2d( 0., 0. );
+                      angle = angles_[ angles_.size() - 1]; // error correction
                    }
+                   angles_.push_back( angle );
+                   places_.push_back( absPos  );
                    centroidDistorted_ = centroidDistorted;
                    centroid_ = centroid;
 
@@ -350,7 +354,7 @@ namespace {
                    centroidDistorted_ = estimateCentroid( binaryMaskMat );
                    cv::resize( binaryMaskMat, binaryMaskMat, undistortedSize );
                    centroid_ = estimateCentroid( binaryMaskMat );
-                   angleVect_ = cv::Point2d( 0., 0. );
+                   cv::circle( binaryMaskMat, centroid_, 5, cvScalar(255.0) );
                 }
                 imshow("binary" , binaryMaskMat );
              } 
@@ -388,7 +392,7 @@ namespace {
           }
 
           cv::Point2d estimateCentroid( const cv::Mat& img ) {
-             cv::Point2d lower( img.cols, img.rows);
+             cv::Point2d lower( img.cols-1, img.rows-1);
              cv::Point2d upper( 0.0, 0.0 );
 
              for ( int x = 0; x < img.cols; ++x ) {
@@ -481,12 +485,8 @@ namespace {
              return maxJ;
           }
 
-          double calculateK( const cv::Mat& img, const cv::Point2d& centroid, const cv::Point2d& previousCentroid, double angle, double signOfAngle, double jOfAngle ) {
+          double calculateK( const cv::Mat& img, const cv::Point2d& helper, double angle, double signOfAngle, double jOfAngle ) {
              const double PI = 3.141592653589793;
-             cv::Point2d helper = angleVect_;
-             if ( helper.x == 0. || helper.y == 0 ) {
-                helper = centroid - previousCentroid;
-             }
              cv::Point2d dir ( cos( signOfAngle * angle + PI / 2. * jOfAngle), sin( signOfAngle * angle + PI / 2. * jOfAngle ) );
              if ( dir.x * helper.x + dir.y * helper.y < 0 ) {
                 return 1.0;
