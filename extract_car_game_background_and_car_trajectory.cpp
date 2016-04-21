@@ -332,10 +332,12 @@ namespace {
 
                    const double PI = 3.141592653589793;
                    double angle = correctInterval( signOfAngle * rawAngle + PI / 2. * jOfAngle + PI * kOfAngle );
+                   bool validAngle = false;
 
                    // preserving important data
                    if ( angleVect_.x == 0. && angleVect_.y == 0. || angleVect_.x * cos( angle )  + angleVect_.y * sin( angle ) > 0.85 ) {
                       angleVect_ = cv::Point2d( cos( angle ), sin( angle ) );
+                      validAngle = true;
                    } else {
                       angle = angles_[ angles_.size() - 1]; // error correction
                    }
@@ -345,8 +347,12 @@ namespace {
                    centroid_ = centroid;
 
                    // drawing debug data
-                   cv::Point2d rad( 5, 5 );
-                   cv::rectangle( binaryMaskMat, centroid - rad, centroid + rad, cvScalar(255.0) );
+                   if ( validAngle ) {
+                      cv::Point2d rad( 5, 5 );
+                      cv::rectangle( binaryMaskMat, centroid - rad, centroid + rad, cvScalar(255.0) );
+                   } else {
+                      cv::circle( binaryMaskMat, centroid_, 5, cvScalar(255.0) );
+                   }
                    cv::Point2d dir ( cos( angle + PI ), sin( angle + PI ) );
                    cv::line( binaryMaskMat, centroid, centroid + cv::Point2d( 30. * dir ), cvScalar(255.0) );
 
