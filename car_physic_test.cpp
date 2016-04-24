@@ -45,8 +45,8 @@ public:
    void setX( float x ) { x_ = x; }
    void setY( float y ) { y_ = y; }
 protected:
-   float x_;
-   float y_;
+   mutable double x_;
+   mutable double y_;
 };
 
 class BackgroundRectangle : public Drawable {
@@ -91,13 +91,26 @@ public:
       const float w2 = CAR_WIDTH / 2.;
       const float h2 = CAR_HEIGHT / 2.;
       glRectf(- w2, - h2, + w2, + h2);
+      glColor3fv(RED_RGB);
+      glRectf(- w2, - h2, + w2 , - h2 + h2 / 4.);
       glPopMatrix();
    }
-   virtual void move( int passed_time_in_ms ) const override {}
+
+   // Moving in one ms
+   void move_in_a_millisecond() const {
+      x_ += speedX_ * 0.001;
+      y_ += speedY_ * 0.001;
+   }
+
+   virtual void move( int passed_time_in_ms ) const override {
+      for ( int i = 0; i < passed_time_in_ms; ++i ) {
+         move_in_a_millisecond();
+      }
+   }
 private:
-   float speedX_;
-   float speedY_;
-   float orientation_; 
+   double speedX_;
+   double speedY_;
+   double orientation_; 
 };
 
 //-----------------------------------------------------------------------
