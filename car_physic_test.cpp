@@ -28,6 +28,7 @@ GLint TIMER_DELAY = 10000;                 // timer delay (10 seconds)
 GLfloat RED_RGB[] = {1.0, 0.0, 0.0};       // drawing colors
 GLfloat BLUE_RGB[] = {0.0, 0.0, 1.0};
 GLfloat GREEN_RGB[] = {0.0, 1.0, 0.0};
+GLfloat BLACK_RGB[] = {0.0, 0.0, 0.0};
 
 const float CAR_WIDTH = 50.;
 const float CAR_HEIGHT = 100.;
@@ -81,18 +82,30 @@ public:
 
 class Car : public Drawable {
 public:
-   Car( float x, float y ) : Drawable( x, y ), speedX_( 0.f ), speedY_( 0.f )  {}
+   Car( float x, float y ) : Drawable( x, y ), speedX_( 0. ), speedY_( 0. ), carOrientation_( 0. ), wheelOrientation_( 0. )  {}
 
    virtual void drawGL() const override {
       glPushMatrix();
       glTranslatef(x_, y_, 0.0f);
-      glRotatef(orientation_, 0.0, 0.0, 1.0);
+      glRotatef(carOrientation_, 0.0, 0.0, 1.0);
       glColor3fv(BLUE_RGB);
       const float w2 = CAR_WIDTH / 2.;
       const float h2 = CAR_HEIGHT / 2.;
       glRectf(- w2, - h2, + w2, + h2);
       glColor3fv(RED_RGB);
       glRectf(- w2, + h2 - h2 / 4., + w2 , + h2 );
+      glColor3fv(BLACK_RGB);
+      for ( int sx = -1; sx <= 1; sx += 2 ) {
+         for ( int sy = -1; sy <= 1; sy += 2 ) {
+            glPushMatrix();
+            glTranslatef( sx * w2, sy * h2, 0.0f);
+            if ( sy == 1 ) {
+               glRotatef(wheelOrientation_, 0.0, 0.0, 1.0);
+            }
+            glRectf( - w2 /4., - h2 / 4. , + w2 / 4.,  + h2 / 4. );
+            glPopMatrix();
+         }
+      }
       glPopMatrix();
    }
 
@@ -110,7 +123,8 @@ public:
 private:
    double speedX_;
    double speedY_;
-   double orientation_; 
+   double carOrientation_; 
+   double wheelOrientation_;
 };
 
 //-----------------------------------------------------------------------
