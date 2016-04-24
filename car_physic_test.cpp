@@ -84,14 +84,18 @@ public:
    Car( float x, float y ) : Drawable( x, y ) {}
 
    virtual void drawGL() const override {
+      glPushMatrix();
+      glTranslatef(x_, y_, 0.0f);
+      glRotatef(orientation_, 0.0, 0.0, 1.0);
       glColor3fv(BLUE_RGB);
       const float w2 = CAR_WIDTH / 2.;
       const float h2 = CAR_HEIGHT / 2.;
-      glRectf(x_ - w2, y_ - h2, x_ + w2, x_ + h2);
+      glRectf(- w2, - h2, + w2, + h2);
+      glPopMatrix();
    }
    virtual void move( float passed_time ) const override {}
 private:
-   
+   float orientation_; 
 };
 
 //-----------------------------------------------------------------------
