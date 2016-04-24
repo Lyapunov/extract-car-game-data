@@ -54,7 +54,7 @@ static int old_t = 0;
 //-----------------------------------------------------------------------
 
 void myReshape(int w, int h) {
-   glViewport (0, 0, w, h);
+//   glViewport (0, 0, w, h);
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity();
    glMatrixMode(GL_MODELVIEW);
