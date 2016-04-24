@@ -69,6 +69,8 @@ public:
 //  Global variables
 //-----------------------------------------------------------------------
 static int old_t = 0;
+
+static Car myCar( 10., 10. );
 static DrawableContainer World;
 
 //-----------------------------------------------------------------------
@@ -142,7 +144,7 @@ void myKeyboardSpecialKeys(int key, int x, int y) {
 
 int main(int argc, char** argv)
 {
-   Car myCar( 10., 10. );
+   // building the world
    World.addChild( myCar );
 
    glutInit(&argc, argv);
