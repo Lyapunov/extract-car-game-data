@@ -27,6 +27,7 @@
 GLint TIMER_DELAY = 10000;                 // timer delay (10 seconds)
 GLfloat RED_RGB[] = {1.0, 0.0, 0.0};       // drawing colors
 GLfloat BLUE_RGB[] = {0.0, 0.0, 1.0};
+GLfloat GREEN_RGB[] = {0.0, 1.0, 0.0};
 
 //-----------------------------------------------------------------------
 // Classes of world objects
@@ -42,6 +43,19 @@ public:
 protected:
    float x_;
    float y_;
+};
+
+class BackgroundRectangle : public Drawable {
+public:
+   BackgroundRectangle( GLfloat* color, float x = 0., float y = 0., float width = 100., float height = 100. ) : Drawable( x, y ), color_( color ), width_( width ), height_( height ) {}
+   virtual void drawGL() const override {
+      glColor3fv( color_ );
+      glRectf(x_, y_, x_ + width_, y_ + height_);
+   }
+protected:
+   const GLfloat* const color_;
+   float width_;
+   float height_;
 };
 
 class DrawableContainer : public Drawable, public std::vector< const Drawable* > {
@@ -145,6 +159,8 @@ void myKeyboardSpecialKeys(int key, int x, int y) {
 int main(int argc, char** argv)
 {
    // building the world
+   BackgroundRectangle b1( GREEN_RGB, 0.f, 0.f, 1000.f, 1000.f );
+   World.addChild( b1 );
    World.addChild( myCar );
 
    glutInit(&argc, argv);
