@@ -6,6 +6,7 @@
 //
 // + extended with
 //   http://stackoverflow.com/questions/2182675/how-do-you-make-sure-the-speed-of-opengl-animation-is-consistent-on-different-ma 
+//   http://gamedev.stackexchange.com/questions/103334/how-can-i-set-up-a-pixel-perfect-camera-using-opengl-and-orthographic-projection
 //
 // How to compile in ubuntu:
 // -------------------------
@@ -60,7 +61,7 @@ public:
 
    virtual void drawGL() const override {
       glColor3fv(BLUE_RGB);
-      glRectf(0.25, 0.25, 0.75, 0.75);         
+      glRectf(10, 10, 60, 110);
    }
 };
 
@@ -74,11 +75,13 @@ static DrawableContainer World;
 //  Callbacks
 //-----------------------------------------------------------------------
 
-void myReshape(int w, int h) {
-//   glViewport (0, 0, w, h);
+void myReshape(int screenWidth, int screenHeight) {
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity();
+   glViewport(0, 0, screenWidth, screenHeight);
    glMatrixMode(GL_MODELVIEW);
+   glLoadIdentity();
+   glOrtho(0, screenWidth, 0, screenHeight, 1, -1);
    glutPostRedisplay();
 }
 
