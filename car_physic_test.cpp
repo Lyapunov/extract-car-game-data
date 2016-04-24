@@ -27,6 +27,10 @@ GLint TIMER_DELAY = 10000;                 // timer delay (10 seconds)
 GLfloat RED_RGB[] = {1.0, 0.0, 0.0};       // drawing colors
 GLfloat BLUE_RGB[] = {0.0, 0.0, 1.0};
 
+//-----------------------------------------------------------------------
+// Classes of world objects
+//-----------------------------------------------------------------------
+
 class Drawable {
 public:
    Drawable( float x = 0., float y = 0. ) : x_( x ), y_( y ) {}
