@@ -29,6 +29,9 @@ GLfloat RED_RGB[] = {1.0, 0.0, 0.0};       // drawing colors
 GLfloat BLUE_RGB[] = {0.0, 0.0, 1.0};
 GLfloat GREEN_RGB[] = {0.0, 1.0, 0.0};
 
+const float CAR_WIDTH = 50.;
+const float CAR_HEIGHT = 100.;
+
 //-----------------------------------------------------------------------
 // Classes of world objects
 //-----------------------------------------------------------------------
@@ -38,6 +41,7 @@ public:
    Drawable( float x = 0., float y = 0. ) : x_( x ), y_( y ) {}
    virtual ~Drawable() {}
    virtual void drawGL() const = 0;
+   virtual void move( float passed_time ) const = 0;
    void setX( float x ) { x_ = x; }
    void setY( float y ) { y_ = y; }
 protected:
@@ -52,6 +56,7 @@ public:
       glColor3fv( color_ );
       glRectf(x_, y_, x_ + width_, y_ + height_);
    }
+   virtual void move( float passed_time ) const override {}
 protected:
    const GLfloat* const color_;
    float width_;
@@ -67,6 +72,11 @@ public:
          elem->drawGL();
       }
    }
+   virtual void move( float passed_time ) const override {
+       for ( const auto& elem: static_cast< std::vector< const Drawable* > >( *this ) ) {
+         elem->move( passed_time );
+      }
+   }
 };
 
 class Car : public Drawable {
@@ -75,16 +85,21 @@ public:
 
    virtual void drawGL() const override {
       glColor3fv(BLUE_RGB);
-      glRectf(10, 10, 60, 110);
+      const float w2 = CAR_WIDTH / 2.;
+      const float h2 = CAR_HEIGHT / 2.;
+      glRectf(x_ - w2, y_ - h2, x_ + w2, x_ + h2);
    }
+   virtual void move( float passed_time ) const override {}
+private:
+   
 };
 
 //-----------------------------------------------------------------------
 //  Global variables
 //-----------------------------------------------------------------------
-static int old_t = 0;
+static int Old_t = 0;
 
-static Car myCar( 10., 10. );
+static Car myCar( 100., 100. );
 static DrawableContainer World;
 
 //-----------------------------------------------------------------------
@@ -101,19 +116,20 @@ void myReshape(int screenWidth, int screenHeight) {
    glutPostRedisplay();
 }
 
-void animate(int passed_time, GLfloat* diamColor, GLfloat* rectColor) {
+void animate(float passed_time, GLfloat* diamColor, GLfloat* rectColor) {
+   World.move( passed_time );
    World.drawGL();
 }
 
 void myDisplay(void) {                    // display callback
    const int t = glutGet( GLUT_ELAPSED_TIME );
-   const int passed_time = t - old_t;
-   old_t = t;
+   const int passed_time_in_ms = t - Old_t;
+   Old_t = t;
 
    glClearColor(0.0, 0.0, 0.0, 1.0);         // background is black
    glClear(GL_COLOR_BUFFER_BIT);            // clear the window
 
-   animate(passed_time, RED_RGB, BLUE_RGB);
+   animate(passed_time_in_ms / 1000., RED_RGB, BLUE_RGB);
 
    glutSwapBuffers();                    // swap buffers
 }
