@@ -33,9 +33,9 @@ public:
    virtual void draw() const = 0;
 };
 
-class Aggregate : public Drawable, public std::vector< const Drawable* > {
+class DrawableContainer : public Drawable, public std::vector< const Drawable* > {
 public:
-   virtual ~Aggregate() {}
+   virtual ~DrawableContainer() {}
    void addChild( const Drawable& child ) { push_back( &child ); }
    void draw() const {
       for ( const auto& elem: static_cast< std::vector< const Drawable* > >( *this ) ) {
