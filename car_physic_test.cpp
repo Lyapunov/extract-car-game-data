@@ -92,7 +92,7 @@ public:
       const float h2 = CAR_HEIGHT / 2.;
       glRectf(- w2, - h2, + w2, + h2);
       glColor3fv(RED_RGB);
-      glRectf(- w2, - h2, + w2 , - h2 + h2 / 4.);
+      glRectf(- w2, + h2 - h2 / 4., + w2 , + h2 );
       glPopMatrix();
    }
 
