@@ -24,14 +24,27 @@
 // Global data
 //-----------------------------------------------------------------------
 
-GLint TIMER_DELAY = 10000;                 // timer delay (10 seconds)
+GLint TIMER_DELAY = 30;                 // timer delay (10 seconds)
 GLfloat RED_RGB[] = {1.0, 0.0, 0.0};       // drawing colors
 GLfloat BLUE_RGB[] = {0.0, 0.0, 1.0};
 GLfloat GREEN_RGB[] = {0.0, 1.0, 0.0};
 GLfloat BLACK_RGB[] = {0.0, 0.0, 0.0};
 
-const float CAR_WIDTH = 50.;
-const float CAR_HEIGHT = 100.;
+const double NUMERICAL_ERROR = 1e-10;
+const double CAR_WIDTH = 50.;
+const double CAR_HEIGHT = 100.;
+const double MAXIMAL_STEERING_ANGLE = 30.;
+const double STEERING_SPEED = 30.;
+
+double sign( const double number ) {
+   if ( number > NUMERICAL_ERROR ) {
+      return 1.;
+   }
+   if ( number < -NUMERICAL_ERROR ) {
+      return -1.;
+   }
+   return 0.;
+}
 
 //-----------------------------------------------------------------------
 // Classes of world objects
@@ -82,7 +95,7 @@ public:
 
 class Car : public Drawable {
 public:
-   Car( float x, float y ) : Drawable( x, y ), speedX_( 0. ), speedY_( 0. ), carOrientation_( 0. ), wheelOrientation_( 0. )  {}
+   Car( float x, float y ) : Drawable( x, y ), speedX_( 0. ), speedY_( 30. ), carOrientation_( 0. ), wheelOrientation_( 0. ), turning_( 0 ) {}
 
    virtual void drawGL() const override {
       glPushMatrix();
@@ -109,10 +122,29 @@ public:
       glPopMatrix();
    }
 
+   void stopTurning() const { turning_ =  0; }
+   void turnLeft()    const { turning_ = +1; }
+   void turnRight()   const { turning_ = -1; }
+
    // Moving in one ms
    void move_in_a_millisecond() const {
-      x_ += speedX_ * 0.001;
-      y_ += speedY_ * 0.001;
+      double deltaT = 0.001;
+
+      x_ += speedX_ * deltaT;
+      y_ += speedY_ * deltaT;
+
+      // turning
+      if ( !turning_ ) {
+         if ( fabs( wheelOrientation_ ) < NUMERICAL_ERROR ) {
+            return;
+         }
+         wheelOrientation_ -= sign( wheelOrientation_ ) * deltaT * STEERING_SPEED;
+      } else {
+         wheelOrientation_ += static_cast<double>( turning_ ) * deltaT * STEERING_SPEED;
+      }
+      if ( fabs( wheelOrientation_ ) > MAXIMAL_STEERING_ANGLE ) {
+         wheelOrientation_ = MAXIMAL_STEERING_ANGLE * sign( wheelOrientation_ );
+      }
    }
 
    virtual void move( int passed_time_in_ms ) const override {
@@ -124,7 +156,8 @@ private:
    double speedX_;
    double speedY_;
    double carOrientation_; 
-   double wheelOrientation_;
+   mutable double wheelOrientation_;
+   mutable int turning_;
 };
 
 //-----------------------------------------------------------------------
@@ -167,9 +200,9 @@ void myDisplay(void) {                    // display callback
    glutSwapBuffers();                    // swap buffers
 }
 
-void myTimer(int id) {                    // timer callback
-   glutPostRedisplay();                  // request redraw
-   glutTimerFunc(TIMER_DELAY, myTimer, 0);    // reset timer for 10 seconds
+void myTimer(int id) {                        // timer callback
+   glutPostRedisplay()     ;                  // request redraw
+   glutTimerFunc(TIMER_DELAY, myTimer, 0);
 }
 
 void myMouse(int b, int s, int x, int y) {     // mouse click callback
@@ -192,9 +225,32 @@ void myKeyboard(unsigned char key, int x, int y) {
 
 void myKeyboardSpecialKeys(int key, int x, int y) {
    switch (key) {
+      case GLUT_KEY_LEFT:
+         myCar.turnLeft();
+         break;
+      case GLUT_KEY_RIGHT:
+         myCar.turnRight();
+         break;
       case GLUT_KEY_UP:
+         break;
       case GLUT_KEY_DOWN:
-         exit(0);
+         break;
+      default:
+         break;
+   }
+}
+
+void myKeyboardSpecialKeysUp(int key, int x, int y) {
+   switch (key) {
+      case GLUT_KEY_LEFT:
+         myCar.stopTurning();
+         break;
+      case GLUT_KEY_RIGHT:
+         myCar.stopTurning();
+         break;
+      case GLUT_KEY_UP:
+         break;
+      case GLUT_KEY_DOWN:
          break;
       default:
          break;
@@ -223,6 +279,7 @@ int main(int argc, char** argv)
    glutMouseFunc(myMouse);
    glutKeyboardFunc(myKeyboard);
    glutSpecialFunc(myKeyboardSpecialKeys);
+   glutSpecialUpFunc(myKeyboardSpecialKeysUp);
    glutTimerFunc(TIMER_DELAY, myTimer, 0);
    glutMainLoop();
    return 0;
