@@ -29,18 +29,34 @@ GLfloat BLUE_RGB[] = {0.0, 0.0, 1.0};
 
 class Drawable {
 public:
+   Drawable( float x = 0., float y = 0. ) : x_( x ), y_( y ) {}
    virtual ~Drawable() {}
-   virtual void draw() const = 0;
+   virtual void drawGL() const = 0;
+   void setX( float x ) { x_ = x; }
+   void setY( float y ) { y_ = y; }
+protected:
+   float x_;
+   float y_;
 };
 
 class DrawableContainer : public Drawable, public std::vector< const Drawable* > {
 public:
    virtual ~DrawableContainer() {}
    void addChild( const Drawable& child ) { push_back( &child ); }
-   void draw() const {
+   virtual void drawGL() const override {
       for ( const auto& elem: static_cast< std::vector< const Drawable* > >( *this ) ) {
-         elem->draw();
+         elem->drawGL();
       }
+   }
+};
+
+class Car : public Drawable {
+public:
+   Car( float x, float y ) : Drawable( x, y ) {}
+
+   virtual void drawGL() const override {
+      glColor3fv(BLUE_RGB);
+      glRectf(0.25, 0.25, 0.75, 0.75);         
    }
 };
 
@@ -48,6 +64,7 @@ public:
 //  Global variables
 //-----------------------------------------------------------------------
 static int old_t = 0;
+static DrawableContainer World;
 
 //-----------------------------------------------------------------------
 //  Callbacks
@@ -62,15 +79,7 @@ void myReshape(int w, int h) {
 }
 
 void animate(int passed_time, GLfloat* diamColor, GLfloat* rectColor) {
-   glColor3fv(diamColor);                 
-   glBegin(GL_POLYGON);                  
-      glVertex2f(0.90, 0.50);
-      glVertex2f(0.50, 0.90);
-      glVertex2f(0.10, 0.50);
-      glVertex2f(0.50, 0.10);
-   glEnd();
-   glColor3fv(rectColor);                 
-   glRectf(0.25, 0.25, 0.75, 0.75);         
+   World.drawGL();
 }
 
 void myDisplay(void) {                    // display callback
@@ -126,6 +135,9 @@ void myKeyboardSpecialKeys(int key, int x, int y) {
 
 int main(int argc, char** argv)
 {
+   Car myCar( 10., 10. );
+   World.addChild( myCar );
+
    glutInit(&argc, argv);
    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
    glutInitWindowSize(400, 400);
