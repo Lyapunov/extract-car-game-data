@@ -32,6 +32,7 @@ GLfloat RED_RGB[] = {1.0, 0.0, 0.0};       // drawing colors
 GLfloat BLUE_RGB[] = {0.0, 0.0, 1.0};
 GLfloat GREEN_RGB[] = {0.0, 1.0, 0.0};
 GLfloat BLACK_RGB[] = {0.0, 0.0, 0.0};
+GLfloat YELLOW_RGB[] = {0.0, 1.0, 1.0};
 
 const double PI = 3.14159265358993;
 
@@ -40,6 +41,7 @@ const double CAR_WIDTH = 50.;
 const double CAR_HEIGHT = 100.;
 const double MAXIMAL_STEERING_ANGLE = 30.;
 const double STEERING_SPEED = 30.;
+const double DELTA_T = 0.001;
 
 double sign( const double number ) {
    if ( number > NUMERICAL_ERROR ) {
@@ -50,6 +52,23 @@ double sign( const double number ) {
    }
    return 0.;
 }
+
+double turningBaseline( const double alpha, const double width, const double height ) {
+   const double higherRad = fabs(alpha) / 180. * PI;
+   if ( higherRad < NUMERICAL_ERROR ) {
+      return 10.e40;
+   }
+   const double myTan = std::tan( higherRad );
+   const double d = height / myTan;
+   return d + width / 2.;
+}
+
+double turningRadius( const double alpha, const double width, const double height ) {
+   const double d = turningBaseline( alpha, width, height );
+   const double angl = atan( height / 2. / d );
+   return d / std::cos( angl );
+}
+
 
 double lowerTurningAngle( const double alpha, const double width, const double height ) {
    const double baseSign = sign( alpha );
@@ -107,7 +126,7 @@ public:
 
 class Car : public Drawable {
 public:
-   Car( float x, float y ) : Drawable( x, y ), speedX_( 0. ), speedY_( 30. ), carOrientation_( 0. ), wheelOrientation_( 0. ), turning_( 0 ) {}
+   Car( float x, float y ) : Drawable( x, y ), speed_( 30. ), carOrientation_( 0. ), wheelOrientation_( 0. ), turning_( 0 ), turningBaselineDistance_( 0. ) {}
 
    virtual void drawGL() const override {
       glPushMatrix();
@@ -135,6 +154,13 @@ public:
             glPopMatrix();
          }
       }
+      // debug info
+      glBegin(GL_LINES);
+      glVertex2f( +w2, -h2 );
+      glVertex2f( turningBaselineDistance_, -h2 );
+      glEnd();
+
+      glColor3fv(RED_RGB);
       glPopMatrix();
    }
 
@@ -142,25 +168,31 @@ public:
    void turnLeft()    const { turning_ = +1; }
    void turnRight()   const { turning_ = -1; }
 
-   // Moving in one ms
-   void move_in_a_millisecond() const {
-      double deltaT = 0.001;
-
-      x_ += speedX_ * deltaT;
-      y_ += speedY_ * deltaT;
-
+   void correctingWheelOrientation() const {
       // turning
       if ( !turning_ ) {
          if ( fabs( wheelOrientation_ ) < NUMERICAL_ERROR ) {
             return;
          }
-         wheelOrientation_ -= sign( wheelOrientation_ ) * deltaT * STEERING_SPEED;
+         wheelOrientation_ -= sign( wheelOrientation_ ) * DELTA_T * STEERING_SPEED;
       } else {
-         wheelOrientation_ += static_cast<double>( turning_ ) * deltaT * STEERING_SPEED;
+         wheelOrientation_ += static_cast<double>( turning_ ) * DELTA_T * STEERING_SPEED;
       }
       if ( fabs( wheelOrientation_ ) > MAXIMAL_STEERING_ANGLE ) {
          wheelOrientation_ = MAXIMAL_STEERING_ANGLE * sign( wheelOrientation_ );
       }
+   }
+
+   // Moving in one ms
+   void move_in_a_millisecond() const {
+      turningBaselineDistance_ = turningBaseline( wheelOrientation_, CAR_WIDTH, CAR_HEIGHT );
+      double radius   = turningRadius( wheelOrientation_, CAR_WIDTH, CAR_HEIGHT );
+
+      carOrientation_ += static_cast<double>( turning_ ) * ( speed_ / radius ) * 180. / PI * DELTA_T;
+      x_ += speed_ * std::sin( /*thetaRad*/ - carOrientation_ / 180. * PI ) * DELTA_T;
+      y_ += speed_ * std::cos( /*thetaRad*/ - carOrientation_ / 180. * PI ) * DELTA_T;
+
+      correctingWheelOrientation();
    }
 
    virtual void move( int passed_time_in_ms ) const override {
@@ -169,11 +201,12 @@ public:
       }
    }
 private:
-   double speedX_;
-   double speedY_;
-   double carOrientation_; 
+   mutable double speed_;
+   mutable double carOrientation_; 
    mutable double wheelOrientation_;
    mutable int turning_;
+
+   mutable double turningBaselineDistance_;
 };
 
 //-----------------------------------------------------------------------
