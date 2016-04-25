@@ -157,7 +157,7 @@ public:
       // debug info
       glBegin(GL_LINES);
       glVertex2f( +w2, -h2 );
-      glVertex2f( turningBaselineDistance_, -h2 );
+      glVertex2f( -sign( wheelOrientation_ ) * turningBaselineDistance_, -h2 );
       glEnd();
 
       glColor3fv(RED_RGB);
@@ -188,7 +188,7 @@ public:
       turningBaselineDistance_ = turningBaseline( wheelOrientation_, CAR_WIDTH, CAR_HEIGHT );
       double radius   = turningRadius( wheelOrientation_, CAR_WIDTH, CAR_HEIGHT );
 
-      carOrientation_ += static_cast<double>( turning_ ) * ( speed_ / radius ) * 180. / PI * DELTA_T;
+      carOrientation_ += sign( wheelOrientation_ ) * ( speed_ / radius ) * 180. / PI * DELTA_T;
       x_ += speed_ * std::sin( /*thetaRad*/ - carOrientation_ / 180. * PI ) * DELTA_T;
       y_ += speed_ * std::cos( /*thetaRad*/ - carOrientation_ / 180. * PI ) * DELTA_T;
 
