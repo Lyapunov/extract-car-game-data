@@ -34,7 +34,7 @@ GLfloat GREEN_RGB[] = {0.0, 0.5, 0.0};
 GLfloat BLACK_RGB[] = {0.0, 0.0, 0.0};
 GLfloat YELLOW_RGB[] = {1.0, 1.0, 0.0};
 
-const double PI = 3.14159265358993;
+const double PI = 3.141592653589793;
 
 const double NUMERICAL_ERROR = 1e-10;
 const double CAR_WIDTH = 50.;
@@ -187,11 +187,11 @@ public:
    // Moving in one ms
    void move_in_a_millisecond() const {
       turningBaselineDistance_ = turningBaseline( wheelOrientation_, CAR_WIDTH, CAR_HEIGHT );
-      double radius   = turningRadius( wheelOrientation_, CAR_WIDTH, CAR_HEIGHT );
+      double radius = turningRadius( wheelOrientation_, CAR_WIDTH, CAR_HEIGHT );
 
       carOrientation_ += sign( wheelOrientation_ ) * ( speed_ / radius ) * 180. / PI * DELTA_T;
-      x_ += speed_ * std::sin( /*thetaRad*/ - carOrientation_ / 180. * PI ) * DELTA_T;
-      y_ += speed_ * std::cos( /*thetaRad*/ - carOrientation_ / 180. * PI ) * DELTA_T;
+      x_ -= speed_ * std::sin( carOrientation_ / 180. * PI ) * DELTA_T;
+      y_ += speed_ * std::cos( carOrientation_ / 180. * PI ) * DELTA_T;
 
       correctingWheelOrientation();
    }
