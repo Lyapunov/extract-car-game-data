@@ -8,6 +8,9 @@
 //   http://stackoverflow.com/questions/2182675/how-do-you-make-sure-the-speed-of-opengl-animation-is-consistent-on-different-ma 
 //   http://gamedev.stackexchange.com/questions/103334/how-can-i-set-up-a-pixel-perfect-camera-using-opengl-and-orthographic-projection
 //
+// + about turning:
+//   https://en.wikipedia.org/wiki/Ackermann_steering_geometry
+//
 // How to compile in ubuntu:
 // -------------------------
 //   sudo apt-get install freeglut3-dev
@@ -30,6 +33,8 @@ GLfloat BLUE_RGB[] = {0.0, 0.0, 1.0};
 GLfloat GREEN_RGB[] = {0.0, 1.0, 0.0};
 GLfloat BLACK_RGB[] = {0.0, 0.0, 0.0};
 
+const double PI = 3.14159265358993;
+
 const double NUMERICAL_ERROR = 1e-10;
 const double CAR_WIDTH = 50.;
 const double CAR_HEIGHT = 100.;
@@ -44,6 +49,13 @@ double sign( const double number ) {
       return -1.;
    }
    return 0.;
+}
+
+double lowerTurningAngle( const double alpha, const double width, const double height ) {
+   const double baseSign = sign( alpha );
+   const double higherRad = fabs(alpha) / 180. * PI;
+   const double lowerRad = atan( height / ( height / std::tan( higherRad ) + width ) );
+   return baseSign * lowerRad * 180. / PI;
 }
 
 //-----------------------------------------------------------------------
@@ -113,7 +125,11 @@ public:
             glPushMatrix();
             glTranslatef( sx * w2, sy * h2, 0.0f);
             if ( sy == 1 ) {
-               glRotatef(wheelOrientation_, 0.0, 0.0, 1.0);
+               if ( sx == -static_cast<int>( sign( wheelOrientation_ ) ) ) { 
+                  glRotatef(wheelOrientation_, 0.0, 0.0, 1.0);
+               } else {
+                  glRotatef( lowerTurningAngle( wheelOrientation_, CAR_WIDTH, CAR_HEIGHT ), 0.0, 0.0, 1.0);
+               }
             }
             glRectf( - w2 /4., - h2 / 4. , + w2 / 4.,  + h2 / 4. );
             glPopMatrix();
