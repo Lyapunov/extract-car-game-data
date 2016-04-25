@@ -30,9 +30,9 @@
 GLint TIMER_DELAY = 30;                 // timer delay (10 seconds)
 GLfloat RED_RGB[] = {1.0, 0.0, 0.0};       // drawing colors
 GLfloat BLUE_RGB[] = {0.0, 0.0, 1.0};
-GLfloat GREEN_RGB[] = {0.0, 1.0, 0.0};
+GLfloat GREEN_RGB[] = {0.0, 0.5, 0.0};
 GLfloat BLACK_RGB[] = {0.0, 0.0, 0.0};
-GLfloat YELLOW_RGB[] = {0.0, 1.0, 1.0};
+GLfloat YELLOW_RGB[] = {1.0, 1.0, 0.0};
 
 const double PI = 3.14159265358993;
 
@@ -155,9 +155,10 @@ public:
          }
       }
       // debug info
+      glColor3fv(YELLOW_RGB);
       glBegin(GL_LINES);
-      glVertex2f( +w2, -h2 );
-      glVertex2f( -sign( wheelOrientation_ ) * turningBaselineDistance_, -h2 );
+      glVertex2f( 0, -h2 );
+      glVertex2f( -sign( wheelOrientation_ ) * turningBaseline( wheelOrientation_, CAR_WIDTH, CAR_HEIGHT ), -h2 );
       glEnd();
 
       glColor3fv(RED_RGB);
