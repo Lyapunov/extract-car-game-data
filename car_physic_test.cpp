@@ -53,19 +53,19 @@ double sign( const double number ) {
    return 0.;
 }
 
-double turningBaseline( const double alpha, const double width, const double height ) {
+double turningBaseline( const double alpha ) {
    const double higherRad = fabs(alpha) / 180. * PI;
    if ( higherRad < NUMERICAL_ERROR ) {
       return 10.e40;
    }
    const double myTan = std::tan( higherRad );
-   const double d = height / myTan;
-   return d + width / 2.;
+   const double d = CAR_HEIGHT / myTan;
+   return d + CAR_WIDTH / 2.;
 }
 
-double turningRadius( const double alpha, const double width, const double height ) {
-   const double d = turningBaseline( alpha, width, height );
-   const double angl = atan( height / 2. / d );
+double turningRadius( const double alpha ) {
+   const double d = turningBaseline( alpha );
+   const double angl = atan( CAR_HEIGHT / 2. / d );
    return d / std::cos( angl );
 }
 
@@ -186,11 +186,11 @@ public:
 
    // Moving in one ms
    void move_in_a_millisecond() const {
-      turningBaselineDistance_ = turningBaseline( wheelOrientation_, CAR_WIDTH, CAR_HEIGHT );
-      double radius = turningRadius( wheelOrientation_, CAR_WIDTH, CAR_HEIGHT );
+      turningBaselineDistance_ = turningBaseline( wheelOrientation_ );
+      double radius = turningRadius( wheelOrientation_ );
+      double turningDeviationAngleInRad = sign( wheelOrientation_ ) * std::asin( CAR_HEIGHT / 2. / radius );
       double deltaAngleOfCarOrientation = sign( wheelOrientation_ ) * ( speed_ / radius ) * 180. / PI * DELTA_T;
       angleOfCarOrientation_ += deltaAngleOfCarOrientation;
-      double turningDeviationAngleInRad = sign( wheelOrientation_ ) * std::asin( CAR_HEIGHT / 2. / radius );
 
       x_ -= speed_ * std::sin( angleOfCarOrientation_ / 180. * PI + turningDeviationAngleInRad ) * DELTA_T;
       y_ += speed_ * std::cos( angleOfCarOrientation_ / 180. * PI + turningDeviationAngleInRad ) * DELTA_T;
