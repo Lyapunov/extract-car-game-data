@@ -42,13 +42,13 @@ const double CAR_HEIGHT = 100.;
 const double MAXIMAL_STEERING_ANGLE = 30.;
 const double STEERING_SPEED = 30.;
 const double DELTA_T = 0.001;
-const double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = 0.0; // to me it is normal
+const double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = 0.5; // to me it is normal
 
 // Calculated constants
 
 const double CAR_HEIGHT_UPPER = ( 0.5 + RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE ) * CAR_HEIGHT;
 const double CAR_HEIGHT_LOWER = ( 0.5 - RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE ) * CAR_HEIGHT;
-const double DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = 0.5 * CAR_HEIGHT;
+const double DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE * CAR_HEIGHT;
 const double DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE_2 = DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE * DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE;
 
 double sign( const double number ) {
@@ -190,7 +190,7 @@ public:
    void move_in_a_millisecond() const {
       turningBaselineDistance_ = turningBaseline( wheelOrientation_ );
       const double radius = std::sqrt( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE_2 + turningBaselineDistance_ * turningBaselineDistance_ );
-      const double turningDeviationAngleInRad = sign( wheelOrientation_ ) * std::asin( CAR_HEIGHT / 2. / radius );
+      const double turningDeviationAngleInRad = sign( wheelOrientation_ ) * std::asin( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE / radius );
       const double deltaAngleOfCarOrientation = sign( wheelOrientation_ ) * ( speed_ / radius ) * 180. / PI * DELTA_T;
       angleOfCarOrientation_ += deltaAngleOfCarOrientation;
 
