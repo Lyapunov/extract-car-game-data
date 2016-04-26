@@ -42,7 +42,7 @@ const double CAR_HEIGHT = 100.;
 const double MAXIMAL_STEERING_ANGLE = 30.;
 const double STEERING_SPEED = 30.;
 const double DELTA_T = 0.001;
-const double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = 0.5; // to me it is normal
+const double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = 0.0; // to me it is normal
 
 // Calculated constants
 
@@ -159,8 +159,8 @@ public:
       // debug info
       glColor3fv(YELLOW_RGB);
       glBegin(GL_LINES);
-      glVertex2f( 0, -h2 );
-      glVertex2f( -sign( wheelOrientation_ ) * turningBaselineDistance_, -h2 );
+      glVertex2f( 0, -h2 + CAR_HEIGHT_LOWER );
+      glVertex2f( -sign( wheelOrientation_ ) * turningBaselineDistance_, -h2 + CAR_HEIGHT_LOWER );
       glEnd();
 
       glColor3fv(RED_RGB);
