@@ -46,7 +46,7 @@ const double MAXIMAL_SPEED = 80.;
 const double ACCELERATION = 20.;
 const double DECELERATION = 30.;
 const double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = 0.5; // to me 0.5 is natural
-const double TURNING_CONST_ANGLE = 0.; // Death rally should use it instead of speed / radius ( maybe calculating radius is too expensive )
+const double TURNING_CONST_ANGLE = 0.; // Death rally should use it instead of speed / radius ( maybe calculating radius is too expensive ) - use 1.
 
 // Calculated constants
 
@@ -189,10 +189,19 @@ public:
 
    // Moving in one ms
    void move_in_a_millisecond() const {
-      turningBaselineDistance_ = turningBaseline( wheelOrientation_ );
-      const double radius = std::sqrt( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE_2 + turningBaselineDistance_ * turningBaselineDistance_ );
-      const double turningDeviationAngleInRad = sign( wheelOrientation_ ) * std::asin( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE / radius );
-      const double deltaAngleOfCarOrientation = sign( wheelOrientation_ ) * ( fabs( TURNING_CONST_ANGLE ) > NUMERICAL_ERROR ? TURNING_CONST_ANGLE : speed_ / radius ) * 180. / PI * DELTA_T;
+      const bool useConstTurningAngle = fabs( TURNING_CONST_ANGLE );
+      if ( !useConstTurningAngle ) {
+         turningBaselineDistance_ = turningBaseline( wheelOrientation_ );
+      }
+      const double radius = useConstTurningAngle 
+                            ? speed_ * DELTA_T / 2. / std::sin( TURNING_CONST_ANGLE * DELTA_T / 2. )
+                            : std::sqrt( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE_2 + turningBaselineDistance_ * turningBaselineDistance_ );
+      if ( useConstTurningAngle ) {
+         turningBaselineDistance_ = std::sqrt( radius * radius - DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE_2 ); 
+      }
+
+      const double turningDeviationAngleInRad = fabs( radius ) > NUMERICAL_ERROR ? sign( wheelOrientation_ ) * std::asin( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE / radius ) : 0.0;
+      const double deltaAngleOfCarOrientation = sign( wheelOrientation_ ) * ( useConstTurningAngle ? TURNING_CONST_ANGLE : speed_ / radius ) * 180. / PI * DELTA_T;
       angleOfCarOrientation_ += deltaAngleOfCarOrientation;
 
       x_ -= speed_ * std::sin( angleOfCarOrientation_ / 180. * PI + turningDeviationAngleInRad ) * DELTA_T;
