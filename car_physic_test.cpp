@@ -192,7 +192,7 @@ public:
       turningBaselineDistance_ = turningBaseline( wheelOrientation_ );
       const double radius = std::sqrt( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE_2 + turningBaselineDistance_ * turningBaselineDistance_ );
       const double turningDeviationAngleInRad = sign( wheelOrientation_ ) * std::asin( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE / radius );
-      const double deltaAngleOfCarOrientation = sign( wheelOrientation_ ) * ( ( fabs( TURNING_CONST_ANGLE ) > NUMERICAL_ERROR ? TURNING_CONST_ANGLE : speed_ ) / radius ) * 180. / PI * DELTA_T;
+      const double deltaAngleOfCarOrientation = sign( wheelOrientation_ ) * ( fabs( TURNING_CONST_ANGLE ) > NUMERICAL_ERROR ? TURNING_CONST_ANGLE : speed_ / radius ) * 180. / PI * DELTA_T;
       angleOfCarOrientation_ += deltaAngleOfCarOrientation;
 
       x_ -= speed_ * std::sin( angleOfCarOrientation_ / 180. * PI + turningDeviationAngleInRad ) * DELTA_T;
