@@ -150,13 +150,8 @@ public:
          for ( int sy = -1; sy <= 1; sy += 2 ) {
             glPushMatrix();
             glTranslatef( sx * w2, sy * h2, 0.0f);
-            if ( sy == 1 ) {
-               if ( sx == -static_cast<int>( sign( wheelOrientation_ ) ) ) { 
-                  glRotatef(wheelOrientation_, 0.0, 0.0, 1.0);
-               } else {
-                  glRotatef( lowerTurningAngle( wheelOrientation_, CAR_WIDTH, CAR_HEIGHT ), 0.0, 0.0, 1.0);
-               }
-            }
+            const double wheelAngle = std::atan( ( sy == 1 ? CAR_HEIGHT_UPPER : CAR_HEIGHT_LOWER ) / ( sx * w2 + turningBaselineDistance_ ) ) / PI * 180.;
+            glRotatef( sy * sign( wheelOrientation_ ) * wheelAngle, 0.0, 0.0, 1.0);
             glRectf( - w2 /4., - h2 / 4. , + w2 / 4.,  + h2 / 4. );
             glPopMatrix();
          }
