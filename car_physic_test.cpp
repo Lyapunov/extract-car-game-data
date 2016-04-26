@@ -126,12 +126,12 @@ public:
 
 class Car : public Drawable {
 public:
-   Car( float x, float y ) : Drawable( x, y ), speed_( 30. ), carOrientation_( 0. ), wheelOrientation_( 0. ), turning_( 0 ), turningBaselineDistance_( 0. ) {}
+   Car( float x, float y ) : Drawable( x, y ), speed_( 30. ), angleOfCarOrientation_( 0. ), wheelOrientation_( 0. ), turning_( 0 ), turningBaselineDistance_( 0. ) {}
 
    virtual void drawGL() const override {
       glPushMatrix();
       glTranslatef(x_, y_, 0.0f);
-      glRotatef(carOrientation_, 0.0, 0.0, 1.0);
+      glRotatef(angleOfCarOrientation_, 0.0, 0.0, 1.0);
       glColor3fv(BLUE_RGB);
       const float w2 = CAR_WIDTH / 2.;
       const float h2 = CAR_HEIGHT / 2.;
@@ -158,7 +158,7 @@ public:
       glColor3fv(YELLOW_RGB);
       glBegin(GL_LINES);
       glVertex2f( 0, -h2 );
-      glVertex2f( -sign( wheelOrientation_ ) * turningBaseline( wheelOrientation_, CAR_WIDTH, CAR_HEIGHT ), -h2 );
+      glVertex2f( -sign( wheelOrientation_ ) * turningBaselineDistance_, -h2 );
       glEnd();
 
       glColor3fv(RED_RGB);
@@ -188,10 +188,12 @@ public:
    void move_in_a_millisecond() const {
       turningBaselineDistance_ = turningBaseline( wheelOrientation_, CAR_WIDTH, CAR_HEIGHT );
       double radius = turningRadius( wheelOrientation_, CAR_WIDTH, CAR_HEIGHT );
+      double deltaAngleOfCarOrientation = sign( wheelOrientation_ ) * ( speed_ / radius ) * 180. / PI * DELTA_T;
+      angleOfCarOrientation_ += deltaAngleOfCarOrientation;
+      double turningDeviationAngleInRad = sign( wheelOrientation_ ) * std::asin( CAR_HEIGHT / 2. / radius );
 
-      carOrientation_ += sign( wheelOrientation_ ) * ( speed_ / radius ) * 180. / PI * DELTA_T;
-      x_ -= speed_ * std::sin( carOrientation_ / 180. * PI ) * DELTA_T;
-      y_ += speed_ * std::cos( carOrientation_ / 180. * PI ) * DELTA_T;
+      x_ -= speed_ * std::sin( angleOfCarOrientation_ / 180. * PI + turningDeviationAngleInRad ) * DELTA_T;
+      y_ += speed_ * std::cos( angleOfCarOrientation_ / 180. * PI + turningDeviationAngleInRad ) * DELTA_T;
 
       correctingWheelOrientation();
    }
@@ -203,7 +205,7 @@ public:
    }
 private:
    mutable double speed_;
-   mutable double carOrientation_; 
+   mutable double angleOfCarOrientation_; 
    mutable double wheelOrientation_;
    mutable int turning_;
 
