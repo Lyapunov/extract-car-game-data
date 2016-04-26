@@ -77,13 +77,6 @@ double turningBaseline( const double alpha ) {
    return d + CAR_WIDTH / 2.;
 }
 
-double lowerTurningAngle( const double alpha, const double width, const double height ) {
-   const double baseSign = sign( alpha );
-   const double higherRad = fabs(alpha) / 180. * PI;
-   const double lowerRad = atan( height / ( height / std::tan( higherRad ) + width ) );
-   return baseSign * lowerRad * 180. / PI;
-}
-
 //-----------------------------------------------------------------------
 // Classes of world objects
 //-----------------------------------------------------------------------
