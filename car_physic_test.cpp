@@ -43,6 +43,9 @@ const double MAXIMAL_STEERING_ANGLE = 40.;
 const double STEERING_SPEED = 30.;
 const double DELTA_T = 0.001;
 const double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = 0.5; // to me 0.5 is natural
+const double MAXIMAL_SPEED = 80.;
+const double ACCELERATION = 20.;
+const double DECELERATION = 30.;
 
 // Calculated constants
 
@@ -126,7 +129,7 @@ public:
 
 class Car : public Drawable {
 public:
-   Car( float x, float y ) : Drawable( x, y ), speed_( 30. ), angleOfCarOrientation_( 0. ), wheelOrientation_( 0. ), turning_( 0 ), turningBaselineDistance_( 0. ) {}
+   Car( float x, float y ) : Drawable( x, y ), speed_( 30. ), angleOfCarOrientation_( 0. ), wheelOrientation_( 0. ), actionTurning_( 0 ), actionAccelerating_( 0 ), turningBaselineDistance_( 0. ) {}
 
    virtual void drawGL() const override {
       glPushMatrix();
@@ -162,19 +165,21 @@ public:
       glPopMatrix();
    }
 
-   void stopTurning() const { turning_ =  0; }
-   void turnLeft()    const { turning_ = +1; }
-   void turnRight()   const { turning_ = -1; }
+   void stopTurning() const { actionTurning_ =  0; }
+   void turnLeft()    const { actionTurning_ = +1; }
+   void turnRight()   const { actionTurning_ = -1; }
+   void stopAccelerating() const  { actionAccelerating_ = +0; }
+   void accelerate() const  { actionAccelerating_ = +1; }
 
    void correctingWheelOrientation() const {
       // turning
-      if ( !turning_ ) {
+      if ( !actionTurning_ ) {
          if ( fabs( wheelOrientation_ ) < NUMERICAL_ERROR ) {
             return;
          }
          wheelOrientation_ -= sign( wheelOrientation_ ) * DELTA_T * STEERING_SPEED;
       } else {
-         wheelOrientation_ += static_cast<double>( turning_ ) * DELTA_T * STEERING_SPEED;
+         wheelOrientation_ += static_cast<double>( actionTurning_ ) * DELTA_T * STEERING_SPEED;
       }
       if ( fabs( wheelOrientation_ ) > MAXIMAL_STEERING_ANGLE ) {
          wheelOrientation_ = MAXIMAL_STEERING_ANGLE * sign( wheelOrientation_ );
@@ -193,6 +198,16 @@ public:
       y_ += speed_ * std::cos( angleOfCarOrientation_ / 180. * PI + turningDeviationAngleInRad ) * DELTA_T;
 
       correctingWheelOrientation();
+
+      const double acceleration = ( static_cast<double>( actionAccelerating_ ) * ACCELERATION - ( 1. - static_cast<double>( actionAccelerating_ ) ) * DECELERATION ) * DELTA_T ;
+
+      speed_ += acceleration;
+      if ( speed_ < 0. ) {
+         speed_ = 0.;
+      }
+      if ( speed_ > MAXIMAL_SPEED ) {
+         speed_ = MAXIMAL_SPEED;
+      }
    }
 
    virtual void move( int passed_time_in_ms ) const override {
@@ -204,7 +219,9 @@ private:
    mutable double speed_;
    mutable double angleOfCarOrientation_; 
    mutable double wheelOrientation_;
-   mutable int turning_;
+
+   mutable int actionTurning_;
+   mutable int actionAccelerating_;
 
    mutable double turningBaselineDistance_;
 };
@@ -281,6 +298,7 @@ void myKeyboardSpecialKeys(int key, int x, int y) {
          myCar.turnRight();
          break;
       case GLUT_KEY_UP:
+         myCar.accelerate();
          break;
       case GLUT_KEY_DOWN:
          break;
@@ -298,6 +316,7 @@ void myKeyboardSpecialKeysUp(int key, int x, int y) {
          myCar.stopTurning();
          break;
       case GLUT_KEY_UP:
+         myCar.stopAccelerating();
          break;
       case GLUT_KEY_DOWN:
          break;
