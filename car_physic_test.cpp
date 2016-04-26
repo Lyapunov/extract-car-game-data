@@ -42,10 +42,11 @@ const double CAR_HEIGHT = 100.;
 const double MAXIMAL_STEERING_ANGLE = 40.;
 const double STEERING_SPEED = 30.;
 const double DELTA_T = 0.001;
-const double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = 0.5; // to me 0.5 is natural
 const double MAXIMAL_SPEED = 80.;
 const double ACCELERATION = 20.;
 const double DECELERATION = 30.;
+const double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = 0.5; // to me 0.5 is natural
+const double TURNING_CONST_ANGLE = 0.; // Death rally should use it instead of speed / radius ( maybe calculating radius is too expensive )
 
 // Calculated constants
 
@@ -129,7 +130,7 @@ public:
 
 class Car : public Drawable {
 public:
-   Car( float x, float y ) : Drawable( x, y ), speed_( 30. ), angleOfCarOrientation_( 0. ), wheelOrientation_( 0. ), actionTurning_( 0 ), actionAccelerating_( 0 ), turningBaselineDistance_( 0. ) {}
+   Car( float x, float y ) : Drawable( x, y ), speed_( 0. ), angleOfCarOrientation_( 0. ), wheelOrientation_( 0. ), actionTurning_( 0 ), actionAccelerating_( 0 ), turningBaselineDistance_( 0. ) {}
 
    virtual void drawGL() const override {
       glPushMatrix();
@@ -191,7 +192,7 @@ public:
       turningBaselineDistance_ = turningBaseline( wheelOrientation_ );
       const double radius = std::sqrt( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE_2 + turningBaselineDistance_ * turningBaselineDistance_ );
       const double turningDeviationAngleInRad = sign( wheelOrientation_ ) * std::asin( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE / radius );
-      const double deltaAngleOfCarOrientation = sign( wheelOrientation_ ) * ( speed_ / radius ) * 180. / PI * DELTA_T;
+      const double deltaAngleOfCarOrientation = sign( wheelOrientation_ ) * ( ( fabs( TURNING_CONST_ANGLE ) > NUMERICAL_ERROR ? TURNING_CONST_ANGLE : speed_ ) / radius ) * 180. / PI * DELTA_T;
       angleOfCarOrientation_ += deltaAngleOfCarOrientation;
 
       x_ -= speed_ * std::sin( angleOfCarOrientation_ / 180. * PI + turningDeviationAngleInRad ) * DELTA_T;
