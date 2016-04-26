@@ -39,7 +39,7 @@ const double PI = 3.141592653589793;
 const double NUMERICAL_ERROR = 1e-10;
 const double CAR_WIDTH = 50.;
 const double CAR_HEIGHT = 100.;
-const double MAXIMAL_STEERING_ANGLE = 30.;
+const double MAXIMAL_STEERING_ANGLE = 40.;
 const double STEERING_SPEED = 30.;
 const double DELTA_T = 0.001;
 const double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = 0.5; // to me 0.5 is natural
@@ -151,10 +151,12 @@ public:
       }
       // debug info
       glColor3fv(YELLOW_RGB);
-      glBegin(GL_LINES);
-      glVertex2f( 0, -h2 + CAR_HEIGHT_LOWER );
-      glVertex2f( -sign( wheelOrientation_ ) * turningBaselineDistance_, -h2 + CAR_HEIGHT_LOWER );
-      glEnd();
+      if ( fabs( wheelOrientation_ ) > 1. ) {
+         glBegin(GL_LINES);
+         glVertex2f( 0, -h2 + CAR_HEIGHT_LOWER );
+         glVertex2f( -sign( wheelOrientation_ ) * turningBaselineDistance_, -h2 + CAR_HEIGHT_LOWER );
+         glEnd();
+      }
 
       glColor3fv(RED_RGB);
       glPopMatrix();
