@@ -42,7 +42,7 @@ const double CAR_HEIGHT = 100.;
 const double MAXIMAL_STEERING_ANGLE = 30.;
 const double STEERING_SPEED = 30.;
 const double DELTA_T = 0.001;
-const double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = 0.5; // to me it is normal
+const double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = 0.5; // to me 0.5 is natural
 
 // Calculated constants
 
