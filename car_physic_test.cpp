@@ -42,13 +42,13 @@ constexpr double CAR_HEIGHT = 100.;
 constexpr double MAXIMAL_STEERING_ANGLE = 40.;
 constexpr double STEERING_SPEED = 30.;
 constexpr double DELTA_T = 0.001;
-constexpr double MAXIMAL_SPEED = 80.;
+constexpr double MAXIMAL_SPEED = 120.;
 constexpr double ACCELERATION = 20.;
 constexpr double DECELERATION = 30.;
 constexpr double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = 0.5; // to me 0.5 is natural
 constexpr double TURNING_CONST_ANGLE = 0.; // Death rally should use it instead of speed / radius ( maybe calculating radius is too expensive ) - use 1.
 constexpr double MAXIMAL_DRIFTLESS_SPEED = 60.;
-constexpr double MAXIMAL_DRIF_ACCELERATION = 1.;
+constexpr double MAXIMAL_DRIFTING_SPEED = 60.;
 
 // Calculated constants
 
@@ -70,9 +70,7 @@ constexpr double turningRadius( const double alpha ) {
 }
 
 const double MINIMAL_TURNING_RADIUS = turningRadius( MAXIMAL_STEERING_ANGLE );
-const double MAXIMAL_ANTIDRIFTING_FORCE = MAXIMAL_DRIFTLESS_SPEED * MAXIMAL_DRIFTLESS_SPEED / MINIMAL_TURNING_RADIUS;
-const double MAXIMAL_TURNING_FORCE = MAXIMAL_SPEED * MAXIMAL_SPEED  / MINIMAL_TURNING_RADIUS;
-const double DRIFTING_MASS = ( MAXIMAL_TURNING_FORCE - MAXIMAL_ANTIDRIFTING_FORCE ) / MAXIMAL_DRIF_ACCELERATION;
+const double MAXIMAL_DRIFTLESS_ACCELERATION = MAXIMAL_DRIFTLESS_SPEED * MAXIMAL_DRIFTLESS_SPEED / MINIMAL_TURNING_RADIUS;
 
 double sign( const double number ) {
    if ( number > NUMERICAL_ERROR ) {
@@ -206,9 +204,24 @@ public:
       const double turningDeviationAngleInRad = fabs( radius ) > NUMERICAL_ERROR ? sign( wheelOrientation_ ) * std::asin( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE / radius ) : 0.0;
       const double deltaAngleOfCarOrientation = sign( wheelOrientation_ ) * ( useConstTurningAngle ? TURNING_CONST_ANGLE : speed_ / radius ) * 180. / PI * DELTA_T;
       angleOfCarOrientation_ += deltaAngleOfCarOrientation;
+      const double forwardDirectionAngle = angleOfCarOrientation_ / 180. * PI + turningDeviationAngleInRad;
 
-      x_ -= speed_ * std::sin( angleOfCarOrientation_ / 180. * PI + turningDeviationAngleInRad ) * DELTA_T;
-      y_ += speed_ * std::cos( angleOfCarOrientation_ / 180. * PI + turningDeviationAngleInRad ) * DELTA_T;
+      x_ -= speed_ * std::sin( forwardDirectionAngle ) * DELTA_T;
+      y_ += speed_ * std::cos( forwardDirectionAngle ) * DELTA_T;
+
+      const double driftingAcceleration = sign( wheelOrientation_ ) * std::max( 0.,  ( speed_ * speed_ / radius - MAXIMAL_DRIFTLESS_ACCELERATION ) );
+      const double driftingDeceleration = std::min( 0.,  ( speed_ * speed_ / radius - MAXIMAL_DRIFTLESS_ACCELERATION ) );
+      if ( fabs( drifting_ ) < 1. || sign( drifting_ ) == sign( driftingAcceleration ) ) {
+         drifting_ += driftingAcceleration * DELTA_T;
+      }  else { 
+         drifting_ -= sign( drifting_ ) * fabs( driftingDeceleration )* DELTA_T;
+      }
+      if ( fabs(drifting_) > MAXIMAL_DRIFTING_SPEED ) {
+         drifting_ = sign( drifting_ ) * MAXIMAL_DRIFTING_SPEED;
+      }
+
+      x_ += drifting_ * std::cos( forwardDirectionAngle ) * DELTA_T;
+      y_ += drifting_ * std::sin( forwardDirectionAngle ) * DELTA_T;
 
       correctingWheelOrientation();
 
