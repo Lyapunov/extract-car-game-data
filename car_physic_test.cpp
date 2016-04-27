@@ -133,7 +133,7 @@ public:
 
 class Car : public Drawable {
 public:
-   Car( float x, float y ) : Drawable( x, y ), speed_( 0. ), angleOfCarOrientation_( 0. ), wheelOrientation_( 0. ), actionTurning_( 0 ), actionAccelerating_( 0 ), turningBaselineDistance_( 0. ) {}
+   Car( float x, float y ) : Drawable( x, y ), speed_( 0. ), drifting_( 0. ), angleOfCarOrientation_( 0. ), wheelOrientation_( 0. ), actionTurning_( 0 ), actionAccelerating_( 0 ), turningBaselineDistance_( 0. ) {}
 
    virtual void drawGL() const override {
       glPushMatrix();
@@ -230,6 +230,7 @@ public:
    }
 private:
    mutable double speed_;
+   mutable double drifting_;
    mutable double angleOfCarOrientation_; 
    mutable double wheelOrientation_;
 
