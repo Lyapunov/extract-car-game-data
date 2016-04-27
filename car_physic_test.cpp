@@ -34,26 +34,45 @@ GLfloat GREEN_RGB[] = {0.0, 0.5, 0.0};
 GLfloat BLACK_RGB[] = {0.0, 0.0, 0.0};
 GLfloat YELLOW_RGB[] = {1.0, 1.0, 0.0};
 
-const double PI = 3.141592653589793;
+constexpr double PI = 3.141592653589793;
 
-const double NUMERICAL_ERROR = 1e-10;
-const double CAR_WIDTH = 50.;
-const double CAR_HEIGHT = 100.;
-const double MAXIMAL_STEERING_ANGLE = 40.;
-const double STEERING_SPEED = 30.;
-const double DELTA_T = 0.001;
-const double MAXIMAL_SPEED = 80.;
-const double ACCELERATION = 20.;
-const double DECELERATION = 30.;
-const double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = 0.5; // to me 0.5 is natural
-const double TURNING_CONST_ANGLE = 0.; // Death rally should use it instead of speed / radius ( maybe calculating radius is too expensive ) - use 1.
+constexpr double NUMERICAL_ERROR = 1e-10;
+constexpr double CAR_WIDTH = 50.;
+constexpr double CAR_HEIGHT = 100.;
+constexpr double MAXIMAL_STEERING_ANGLE = 40.;
+constexpr double STEERING_SPEED = 30.;
+constexpr double DELTA_T = 0.001;
+constexpr double MAXIMAL_SPEED = 80.;
+constexpr double ACCELERATION = 20.;
+constexpr double DECELERATION = 30.;
+constexpr double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = 0.5; // to me 0.5 is natural
+constexpr double TURNING_CONST_ANGLE = 0.; // Death rally should use it instead of speed / radius ( maybe calculating radius is too expensive ) - use 1.
+constexpr double MAXIMAL_DRIFTLESS_SPEED = 60.;
+constexpr double MAXIMAL_DRIF_ACCELERATION = 1.;
 
 // Calculated constants
 
-const double CAR_HEIGHT_UPPER = ( 0.5 + RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE ) * CAR_HEIGHT;
-const double CAR_HEIGHT_LOWER = ( 0.5 - RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE ) * CAR_HEIGHT;
-const double DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE * CAR_HEIGHT;
-const double DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE_2 = DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE * DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE;
+constexpr double CAR_HEIGHT_UPPER = ( 0.5 + RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE ) * CAR_HEIGHT;
+constexpr double CAR_HEIGHT_LOWER = ( 0.5 - RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE ) * CAR_HEIGHT;
+constexpr double DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE * CAR_HEIGHT;
+constexpr double DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE_2 = DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE * DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE;
+
+constexpr double calculatingMagicNumberB( const double alpha ) {
+   return ( CAR_HEIGHT_UPPER + CAR_HEIGHT_LOWER ) / ( std::tan( fabs(alpha) / 180. * PI ) + 1e-20 );
+}
+
+constexpr double turningBaseline( const double alpha ) {
+   return ( CAR_WIDTH + calculatingMagicNumberB( alpha ) + sqrt( calculatingMagicNumberB( alpha ) * calculatingMagicNumberB( alpha ) + 4 * ( CAR_HEIGHT_UPPER * CAR_HEIGHT_LOWER ) ) ) / 2.; 
+}
+
+constexpr double turningRadius( const double alpha ) {
+   return std::sqrt( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE_2 + turningBaseline( alpha ) * turningBaseline( alpha ) );
+}
+
+const double MINIMAL_TURNING_RADIUS = turningRadius( MAXIMAL_STEERING_ANGLE );
+const double MAXIMAL_ANTIDRIFTING_FORCE = MAXIMAL_DRIFTLESS_SPEED * MAXIMAL_DRIFTLESS_SPEED / MINIMAL_TURNING_RADIUS;
+const double MAXIMAL_TURNING_FORCE = MAXIMAL_SPEED * MAXIMAL_SPEED  / MINIMAL_TURNING_RADIUS;
+const double DRIFTING_MASS = ( MAXIMAL_TURNING_FORCE - MAXIMAL_ANTIDRIFTING_FORCE ) / MAXIMAL_DRIF_ACCELERATION;
 
 double sign( const double number ) {
    if ( number > NUMERICAL_ERROR ) {
@@ -63,22 +82,6 @@ double sign( const double number ) {
       return -1.;
    }
    return 0.;
-}
-
-double turningBaseline( const double alpha ) {
-   const double higherRad = fabs(alpha) / 180. * PI;
-   if ( higherRad < NUMERICAL_ERROR ) {
-      return 10.e40;
-   }
-   // if heightLower == 0, then 
-   // const double d = heightUpper / std::tan( higherRad );
-
-   // b and c, because it is from a quadratic equation
-   const double b = - ( CAR_HEIGHT_UPPER + CAR_HEIGHT_LOWER ) / std::tan( higherRad );
-   const double c = - ( CAR_HEIGHT_UPPER * CAR_HEIGHT_LOWER );
-  
-   const double d = ( -b + sqrt( b * b - 4 * c ) ) / 2.; 
-   return d + CAR_WIDTH / 2.;
 }
 
 //-----------------------------------------------------------------------
