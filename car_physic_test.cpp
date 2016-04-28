@@ -214,7 +214,7 @@ public:
       if ( fabs( drifting_ ) < 1. || sign( drifting_ ) == sign( driftingAcceleration ) ) {
          drifting_ += driftingAcceleration * DELTA_T;
       }  else { 
-         drifting_ -= sign( drifting_ ) * fabs( driftingDeceleration )* DELTA_T;
+         drifting_ -= sign( drifting_ ) * std::max( fabs( driftingDeceleration ), fabs( driftingAcceleration ) ) * DELTA_T;
       }
       if ( fabs(drifting_) > MAXIMAL_DRIFTING_SPEED ) {
          drifting_ = sign( drifting_ ) * MAXIMAL_DRIFTING_SPEED;
