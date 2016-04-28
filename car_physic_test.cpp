@@ -42,9 +42,9 @@ constexpr double CAR_HEIGHT = 100.;
 constexpr double MAXIMAL_STEERING_ANGLE = 40.;
 constexpr double STEERING_SPEED = 30.;
 constexpr double DELTA_T = 0.001;
-constexpr double MAXIMAL_SPEED = 120.;
-constexpr double ACCELERATION = 20.;
-constexpr double DECELERATION = 30.;
+constexpr double MAXIMAL_SPEED = 200.;
+constexpr double ACCELERATION = 40.;
+constexpr double DECELERATION = 60.;
 constexpr double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = 0.5; // to me 0.5 is natural
 constexpr double TURNING_CONST_ANGLE = 0.; // Death rally should use it instead of speed / radius ( maybe calculating radius is too expensive ) - use 1.
 constexpr double MAXIMAL_DRIFTLESS_SPEED = 60.;
@@ -209,6 +209,7 @@ public:
       x_ -= speed_ * std::sin( forwardDirectionAngle ) * DELTA_T;
       y_ += speed_ * std::cos( forwardDirectionAngle ) * DELTA_T;
 
+      // Drifting. It decreases the total motion energy == slows down the car, delta v == sqrt( 2 * a * s ).
       const double driftingAcceleration = sign( wheelOrientation_ ) * std::max( 0.,  ( speed_ * speed_ / radius - MAXIMAL_DRIFTLESS_ACCELERATION ) );
       const double driftingDeceleration = std::min( 0.,  ( speed_ * speed_ / radius - MAXIMAL_DRIFTLESS_ACCELERATION ) );
       if ( fabs( drifting_ ) < 1. || sign( drifting_ ) == sign( driftingAcceleration ) ) {
@@ -219,9 +220,11 @@ public:
       if ( fabs(drifting_) > MAXIMAL_DRIFTING_SPEED ) {
          drifting_ = sign( drifting_ ) * MAXIMAL_DRIFTING_SPEED;
       }
-
       x_ += drifting_ * std::cos( forwardDirectionAngle ) * DELTA_T;
       y_ += drifting_ * std::sin( forwardDirectionAngle ) * DELTA_T;
+/*      if ( sign( driftingAcceleration ) != 0. && sign( driftingAcceleration ) == sign ( drifting_ ) ) {
+         speed_ -= std::sqrt( 0.1 * 2. * fabs( driftingAcceleration * drifting_ ) * DELTA_T );
+      } */
 
       correctingWheelOrientation();
 
