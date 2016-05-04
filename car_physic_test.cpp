@@ -144,9 +144,11 @@ public:
       for ( int sx = -1; sx <= 1; sx += 2 ) {
          for ( int sy = -1; sy <= 1; sy += 2 ) {
             glPushMatrix();
-            glTranslatef( sx * w2, sy * h2, 0.0f);
-            const double wheelAngle = std::atan( ( sy == 1 ? CAR_HEIGHT_UPPER : CAR_HEIGHT_LOWER ) / ( sx * w2 + turningBaselineDistance_ ) ) / PI * 180.;
-            glRotatef( sy * sign( wheelOrientation_ ) * wheelAngle, 0.0, 0.0, 1.0);
+            const double mirroring = sign( wheelOrientation_ ) < 0 ? -1.0 : 1.0 ;
+            glTranslatef( mirroring * sx * w2, sy * h2, 0.0f);
+            const double myTan = ( sy == 1 ? CAR_HEIGHT_UPPER : CAR_HEIGHT_LOWER ) / ( sx * w2 + turningBaselineDistance_ );
+            const double wheelAngle = sign( wheelOrientation_ ) * std::atan( myTan ) / PI * 180.;
+            glRotatef( 1. *sy * wheelAngle, 0.0, 0.0, 1.0);
             glRectf( - w2 /4., - h2 / 4. , + w2 / 4.,  + h2 / 4. );
             glPopMatrix();
          }
