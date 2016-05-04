@@ -47,8 +47,6 @@ constexpr double ACCELERATION = 40.;
 constexpr double DECELERATION = 60.;
 constexpr double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = 0.5; // to me 0.5 is natural
 constexpr double TURNING_CONST_ANGLE = 0.; // Death rally should use it instead of speed / radius ( maybe calculating radius is too expensive ) - use 1.
-constexpr double MAXIMAL_DRIFTLESS_SPEED = 60.;
-constexpr double MAXIMAL_DRIFTING_SPEED = 60.;
 
 // Calculated constants
 
@@ -70,7 +68,6 @@ constexpr double turningRadius( const double alpha ) {
 }
 
 const double MINIMAL_TURNING_RADIUS = turningRadius( MAXIMAL_STEERING_ANGLE );
-const double MAXIMAL_DRIFTLESS_ACCELERATION = MAXIMAL_DRIFTLESS_SPEED * MAXIMAL_DRIFTLESS_SPEED / MINIMAL_TURNING_RADIUS;
 
 double sign( const double number ) {
    if ( number > NUMERICAL_ERROR ) {
@@ -176,7 +173,8 @@ public:
    void correctingWheelOrientation() const {
       // turning
       if ( !actionTurning_ ) {
-         if ( fabs( wheelOrientation_ ) < NUMERICAL_ERROR ) {
+         if ( fabs( wheelOrientation_ ) < DELTA_T * STEERING_SPEED ) {
+            wheelOrientation_ = 0.;
             return;
          }
          wheelOrientation_ -= sign( wheelOrientation_ ) * DELTA_T * STEERING_SPEED;
@@ -210,22 +208,6 @@ public:
       y_ += speed_ * std::cos( forwardDirectionAngle ) * DELTA_T;
 
       // Drifting. It decreases the total motion energy == slows down the car, delta v == sqrt( 2 * a * s ).
-      const double driftingAcceleration = sign( wheelOrientation_ ) * std::max( 0.,  ( speed_ * speed_ / radius - MAXIMAL_DRIFTLESS_ACCELERATION ) );
-      const double driftingDeceleration = std::min( 0.,  ( speed_ * speed_ / radius - MAXIMAL_DRIFTLESS_ACCELERATION ) );
-      if ( fabs( drifting_ ) < 1. || sign( drifting_ ) == sign( driftingAcceleration ) ) {
-         drifting_ += driftingAcceleration * DELTA_T;
-      }  else { 
-         drifting_ -= sign( drifting_ ) * std::max( fabs( driftingDeceleration ), fabs( driftingAcceleration ) ) * DELTA_T;
-      }
-      if ( fabs(drifting_) > MAXIMAL_DRIFTING_SPEED ) {
-         drifting_ = sign( drifting_ ) * MAXIMAL_DRIFTING_SPEED;
-      }
-      x_ += drifting_ * std::cos( forwardDirectionAngle ) * DELTA_T;
-      y_ += drifting_ * std::sin( forwardDirectionAngle ) * DELTA_T;
-/*      if ( sign( driftingAcceleration ) != 0. && sign( driftingAcceleration ) == sign ( drifting_ ) ) {
-         speed_ -= std::sqrt( 0.1 * 2. * fabs( driftingAcceleration * drifting_ ) * DELTA_T );
-      } */
-
       correctingWheelOrientation();
 
       const double acceleration = ( static_cast<double>( actionAccelerating_ ) * ACCELERATION - ( 1. - static_cast<double>( actionAccelerating_ ) ) * DECELERATION ) * DELTA_T ;
