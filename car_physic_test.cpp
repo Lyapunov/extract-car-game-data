@@ -202,10 +202,14 @@ public:
    void move_in_a_millisecond() const {
       calculateTurningRadiusAndBaseline();
 
-      const bool useConstTurningAngle = fabs( TURNING_CONST_ANGLE );
+      if ( fabs( TURNING_CONST_ANGLE ) )
+      {
+         angleOfCarOrientation_ += sign( wheelOrientation_ ) * TURNING_CONST_ANGLE * 180. / PI * DELTA_T;
+      } else {
+         angleOfCarOrientation_ += sign( wheelOrientation_ ) * ( speed_ / turningRadius_ ) * 180. / PI * DELTA_T;
+      }
+
       const double turningDeviationAngleInRad = fabs( turningRadius_ ) > NUMERICAL_ERROR ? sign( wheelOrientation_ ) * std::asin( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE / turningRadius_ ) : 0.0;
-      const double deltaAngleOfCarOrientation = sign( wheelOrientation_ ) * ( useConstTurningAngle ? TURNING_CONST_ANGLE : speed_ / turningRadius_ ) * 180. / PI * DELTA_T;
-      angleOfCarOrientation_ += deltaAngleOfCarOrientation;
       const double forwardDirectionAngle = angleOfCarOrientation_ / 180. * PI + turningDeviationAngleInRad;
 
       x_ -= speed_ * std::sin( forwardDirectionAngle ) * DELTA_T;
