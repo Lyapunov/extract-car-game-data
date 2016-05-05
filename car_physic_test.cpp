@@ -199,12 +199,7 @@ public:
    }
 
    const double calculateTurningDeviationAngleInRad() const {
-      if ( fabs( TURNING_CONST_ANGLE ) )
-      {
-         return 0.0;
-      } else {
-         return fabs( turningRadius_ ) > NUMERICAL_ERROR ? sign( wheelOrientation_ ) * std::asin( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE / turningRadius_ ) : 0.0;
-      }
+      return fabs( turningRadius_ ) > DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE ? sign( wheelOrientation_ ) * std::asin( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE / turningRadius_ ) : 0.0;
    }
 
    // Moving in one ms
