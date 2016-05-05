@@ -191,10 +191,19 @@ public:
    void calculateTurningRadiusAndBaseline() const {
       if ( fabs( TURNING_CONST_ANGLE ) ) {
          turningRadius_           = speed_ * DELTA_T / 2. / std::sin( TURNING_CONST_ANGLE * DELTA_T / 2. );
-         turningBaselineDistance_ = std::sqrt( turningRadius_ * turningRadius_ - DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE_2 ); 
+         turningBaselineDistance_ = turningRadius_;
       } else {
          turningBaselineDistance_ = turningBaseline( wheelOrientation_ );
          turningRadius_           = std::sqrt( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE_2 + turningBaselineDistance_ * turningBaselineDistance_ );
+      }
+   }
+
+   const double calculateTurningDeviationAngleInRad() const {
+      if ( fabs( TURNING_CONST_ANGLE ) )
+      {
+         return 0.0;
+      } else {
+         return fabs( turningRadius_ ) > NUMERICAL_ERROR ? sign( wheelOrientation_ ) * std::asin( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE / turningRadius_ ) : 0.0;
       }
    }
 
@@ -209,8 +218,7 @@ public:
          angleOfCarOrientation_ += sign( wheelOrientation_ ) * ( speed_ / turningRadius_ ) * 180. / PI * DELTA_T;
       }
 
-      const double turningDeviationAngleInRad = fabs( turningRadius_ ) > NUMERICAL_ERROR ? sign( wheelOrientation_ ) * std::asin( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE / turningRadius_ ) : 0.0;
-      const double forwardDirectionAngle = angleOfCarOrientation_ / 180. * PI + turningDeviationAngleInRad;
+      const double forwardDirectionAngle = angleOfCarOrientation_ / 180. * PI + calculateTurningDeviationAngleInRad(); 
 
       x_ -= speed_ * std::sin( forwardDirectionAngle ) * DELTA_T;
       y_ += speed_ * std::cos( forwardDirectionAngle ) * DELTA_T;
