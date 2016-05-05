@@ -45,7 +45,7 @@ constexpr double DELTA_T = 0.001;
 constexpr double MAXIMAL_SPEED = 200.;
 constexpr double ACCELERATION = 40.;
 constexpr double DECELERATION = 60.;
-constexpr double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = 0.5; // to me 0.5 is natural
+constexpr double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE =0.5; // to me 0.5 is natural
 constexpr double TURNING_CONST_ANGLE = 0.; // Death rally should use it instead of speed / radius ( maybe calculating radius is too expensive ) - use 1.
 
 // Calculated constants
@@ -128,7 +128,7 @@ public:
 
 class Car : public Drawable {
 public:
-   Car( float x, float y ) : Drawable( x, y ), speed_( 0. ), drifting_( 0. ), angleOfCarOrientation_( 0. ), wheelOrientation_( 0. ), actionTurning_( 0 ), actionAccelerating_( 0 ), turningBaselineDistance_( 0. ) {}
+   Car( float x, float y ) : Drawable( x, y ), speed_( 0. ), drifting_( 0. ), angleOfCarOrientation_( 0. ), wheelOrientation_( 0. ), actionTurning_( 0 ), actionAccelerating_( 0 ), turningBaselineDistance_( 0. ), turningRadius_( 0. ) {}
 
    virtual void drawGL() const override {
       glPushMatrix();
@@ -188,21 +188,23 @@ public:
       }
    }
 
+   void calculateTurningRadiusAndBaseline() const {
+      if ( fabs( TURNING_CONST_ANGLE ) ) {
+         turningRadius_           = speed_ * DELTA_T / 2. / std::sin( TURNING_CONST_ANGLE * DELTA_T / 2. );
+         turningBaselineDistance_ = std::sqrt( turningRadius_ * turningRadius_ - DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE_2 ); 
+      } else {
+         turningBaselineDistance_ = turningBaseline( wheelOrientation_ );
+         turningRadius_           = std::sqrt( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE_2 + turningBaselineDistance_ * turningBaselineDistance_ );
+      }
+   }
+
    // Moving in one ms
    void move_in_a_millisecond() const {
-      const bool useConstTurningAngle = fabs( TURNING_CONST_ANGLE );
-      if ( !useConstTurningAngle ) {
-         turningBaselineDistance_ = turningBaseline( wheelOrientation_ );
-      }
-      const double radius = useConstTurningAngle 
-                            ? speed_ * DELTA_T / 2. / std::sin( TURNING_CONST_ANGLE * DELTA_T / 2. )
-                            : std::sqrt( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE_2 + turningBaselineDistance_ * turningBaselineDistance_ );
-      if ( useConstTurningAngle ) {
-         turningBaselineDistance_ = std::sqrt( radius * radius - DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE_2 ); 
-      }
+      calculateTurningRadiusAndBaseline();
 
-      const double turningDeviationAngleInRad = fabs( radius ) > NUMERICAL_ERROR ? sign( wheelOrientation_ ) * std::asin( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE / radius ) : 0.0;
-      const double deltaAngleOfCarOrientation = sign( wheelOrientation_ ) * ( useConstTurningAngle ? TURNING_CONST_ANGLE : speed_ / radius ) * 180. / PI * DELTA_T;
+      const bool useConstTurningAngle = fabs( TURNING_CONST_ANGLE );
+      const double turningDeviationAngleInRad = fabs( turningRadius_ ) > NUMERICAL_ERROR ? sign( wheelOrientation_ ) * std::asin( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE / turningRadius_ ) : 0.0;
+      const double deltaAngleOfCarOrientation = sign( wheelOrientation_ ) * ( useConstTurningAngle ? TURNING_CONST_ANGLE : speed_ / turningRadius_ ) * 180. / PI * DELTA_T;
       angleOfCarOrientation_ += deltaAngleOfCarOrientation;
       const double forwardDirectionAngle = angleOfCarOrientation_ / 180. * PI + turningDeviationAngleInRad;
 
@@ -238,6 +240,7 @@ private:
    mutable int actionAccelerating_;
 
    mutable double turningBaselineDistance_;
+   mutable double turningRadius_;
 };
 
 //-----------------------------------------------------------------------
