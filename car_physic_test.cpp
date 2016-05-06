@@ -134,6 +134,7 @@ public:
       glPushMatrix();
       glTranslatef(x_, y_, 0.0f);
       glRotatef(angleOfCarOrientation_, 0.0, 0.0, 1.0);
+      glTranslatef(0, DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE, 0.0f);
       glColor3fv(BLUE_RGB);
       const float w2 = CAR_WIDTH / 2.;
       const float h2 = CAR_HEIGHT / 2.;
@@ -198,10 +199,6 @@ public:
       }
    }
 
-   const double calculateTurningDeviationAngleInRad() const {
-      return fabs( turningRadius_ ) > DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE ? sign( wheelOrientation_ ) * std::asin( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE / turningRadius_ ) : 0.0;
-   }
-
    // Moving in one ms
    void move_in_a_millisecond() const {
       calculateTurningRadiusAndBaseline();
@@ -213,7 +210,7 @@ public:
          angleOfCarOrientation_ += sign( wheelOrientation_ ) * ( speed_ / turningRadius_ ) * 180. / PI * DELTA_T;
       }
 
-      const double forwardDirectionAngle = angleOfCarOrientation_ / 180. * PI + calculateTurningDeviationAngleInRad(); 
+      const double forwardDirectionAngle = angleOfCarOrientation_ / 180. * PI ;
 
       x_ -= speed_ * std::sin( forwardDirectionAngle ) * DELTA_T;
       y_ += speed_ * std::cos( forwardDirectionAngle ) * DELTA_T;
