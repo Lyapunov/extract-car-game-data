@@ -402,8 +402,14 @@ void myKeyboardSpecialKeysUp(int key, int x, int y) {
 int main(int argc, char** argv)
 {
    // building the world
-   AsphaltRectangle b1( 100.f, 0.f, 300.f, 5000.f );
+   AsphaltRectangle b1( 100.f, 0.f, 300.f, 2000.f );
+   AsphaltRectangle b2( 100.f, 0.f, 2000.f, 300.f );
+   AsphaltRectangle b3( 1800.f, 0.f, 300.f, 2000.f );
+   AsphaltRectangle b4( 100.f, 1700.f, 2000.f, 300.f );
    World.addChild( b1 );
+   World.addChild( b2 );
+   World.addChild( b3 );
+   World.addChild( b4 );
    World.addChild( myCar );
 
    glutInit(&argc, argv);
