@@ -99,12 +99,15 @@ protected:
    mutable double y_;
 };
 
-class BackgroundRectangle : public Drawable {
+class AsphaltRectangle : public Drawable {
 public:
-   BackgroundRectangle( GLfloat* color, float x = 0., float y = 0., float width = 100., float height = 100. ) : Drawable( x, y ), color_( color ), width_( width ), height_( height ) {}
+   AsphaltRectangle( float x = 0., float y = 0., float width = 100., float height = 100. ) : Drawable( x, y ), color_( GRAY_RGB ), width_( width ), height_( height ) {}
    virtual void drawGL() const override {
       glColor3fv( color_ );
-      glRectf(x_, y_, x_ + width_, y_ + height_);
+      glPushMatrix();
+      glTranslatef(x_, y_, 0.0f);
+      glRectf(0., 0., width_, height_);
+      glPopMatrix();
    }
    virtual void move( int passed_time_in_ms ) const override {}
 protected:
@@ -366,7 +369,7 @@ void myKeyboardSpecialKeysUp(int key, int x, int y) {
 int main(int argc, char** argv)
 {
    // building the world
-   BackgroundRectangle b1( GRAY_RGB, 100.f, 0.f, 300.f, 5000.f );
+   AsphaltRectangle b1( 100.f, 0.f, 300.f, 5000.f );
    World.addChild( b1 );
    World.addChild( myCar );
 
