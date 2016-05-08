@@ -33,6 +33,7 @@ GLfloat BLUE_RGB[] = {0.0, 0.0, 1.0};
 GLfloat GREEN_RGB[] = {0.0, 0.5, 0.0};
 GLfloat BLACK_RGB[] = {0.0, 0.0, 0.0};
 GLfloat YELLOW_RGB[] = {1.0, 1.0, 0.0};
+GLfloat GRAY_RGB[] = {0.25, 0.25, 0.25};
 
 constexpr double PI = 3.141592653589793;
 
@@ -286,7 +287,7 @@ void myDisplay(void) {                    // display callback
    const int passed_time_in_ms = t - Old_t;
    Old_t = t;
 
-   glClearColor(0.0, 0.0, 0.0, 1.0);         // background is black
+   glClearColor(0.0, 0.5, 0.0, 1.0);         // background is green
    glClear(GL_COLOR_BUFFER_BIT);            // clear the window
 
    animate(passed_time_in_ms, RED_RGB, BLUE_RGB);
@@ -360,7 +361,7 @@ void myKeyboardSpecialKeysUp(int key, int x, int y) {
 int main(int argc, char** argv)
 {
    // building the world
-   BackgroundRectangle b1( GREEN_RGB, 0.f, 0.f, 1000.f, 1000.f );
+   BackgroundRectangle b1( GRAY_RGB, 100.f, 0.f, 300.f, 5000.f );
    World.addChild( b1 );
    World.addChild( myCar );
 
