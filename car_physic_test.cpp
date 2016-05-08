@@ -262,6 +262,8 @@ static int Old_t = 0;
 
 static Car myCar( 100., 100. );
 static DrawableContainer World;
+static double GlobalCenterX = 0.;
+static double GlobalCenterY = 0.;
 
 //-----------------------------------------------------------------------
 //  Callbacks
@@ -279,7 +281,10 @@ void myReshape(int screenWidth, int screenHeight) {
 
 void animate(int passed_time_in_ms, GLfloat* diamColor, GLfloat* rectColor) {
    World.move( passed_time_in_ms );
+   glPushMatrix();
+   glTranslatef( GlobalCenterX, GlobalCenterY, 0.0f);
    World.drawGL();
+   glPopMatrix();
 }
 
 void myDisplay(void) {                    // display callback
