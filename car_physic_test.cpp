@@ -44,7 +44,7 @@ constexpr double STEERING_SPEED = 30.;
 constexpr double DELTA_T = 0.001;
 constexpr double MAXIMAL_SPEED = 200.;
 constexpr double ACCELERATION = 40.;
-constexpr double DECELERATION = 60.;
+constexpr double DECELERATION_MINUS_ACCELERATION = 20.;
 constexpr double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE =0.5; // to me 0.5 is natural
 constexpr double TURNING_CONST_ANGLE = 0.; // Death rally should use it instead of speed / radius ( maybe calculating radius is too expensive ) - use 1.
 constexpr double TURNING_DECELERATION = 10.;  // Not realistic physically
@@ -220,15 +220,17 @@ public:
       // Drifting. It decreases the total motion energy == slows down the car, delta v == sqrt( 2 * a * s ).
       correctingWheelOrientation();
 
-      double acceleration = ( static_cast<double>( actionAccelerating_ ) * ACCELERATION - ( 1. - static_cast<double>( actionAccelerating_ ) ) * DECELERATION ) * DELTA_T ;
+      double acceleration = ( static_cast<double>( actionAccelerating_ ) * ACCELERATION
+                            - ( 1. - static_cast<double>( actionAccelerating_ ) ) * ( ACCELERATION + DECELERATION_MINUS_ACCELERATION ) ) * DELTA_T ;
       if ( speed_ > MAXIMAL_TURNING_SPEED && sign( wheelOrientation_ ) != 0. && acceleration > -TURNING_DECELERATION * DELTA_T ) {
          acceleration = -TURNING_DECELERATION  * DELTA_T;
       }
-      if ( speed_ > MAXIMAL_SPEED && acceleration > -DECELERATION * DELTA_T  ) {
-        acceleration = - DECELERATION * DELTA_T;
+      if ( speed_ > MAXIMAL_SPEED && acceleration > -( ACCELERATION + DECELERATION_MINUS_ACCELERATION ) * DELTA_T  ) {
+        acceleration = -( ACCELERATION + DECELERATION_MINUS_ACCELERATION ) * DELTA_T;
       }
 
       speed_ += acceleration;
+
       if ( speed_ < 0. ) {
          speed_ = 0.;
       }
