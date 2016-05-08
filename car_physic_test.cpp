@@ -34,6 +34,7 @@ GLfloat GREEN_RGB[] = {0.0, 0.5, 0.0};
 GLfloat BLACK_RGB[] = {0.0, 0.0, 0.0};
 GLfloat YELLOW_RGB[] = {1.0, 1.0, 0.0};
 GLfloat GRAY_RGB[] = {0.25, 0.25, 0.25};
+GLfloat WHITE_RGB[] = {1., 1., 1.};
 
 constexpr double PI = 3.141592653589793;
 
@@ -104,19 +105,29 @@ protected:
 
 class AsphaltRectangle : public Drawable {
 public:
-   AsphaltRectangle( float x = 0., float y = 0., float width = 100., float height = 100. ) : Drawable( x, y ), color_( GRAY_RGB ), width_( width ), height_( height ) {}
+   AsphaltRectangle( float x = 0., float y = 0., float width = 100., float height = 100. )
+     : Drawable( x, y ), width_( width ), height_( height ), horizontal_( height > width )  {}
+
    virtual void drawGL() const override {
-      glColor3fv( color_ );
+      glColor3fv( GRAY_RGB );
       glPushMatrix();
       glTranslatef(x_, y_, 0.0f);
       glRectf(0., 0., width_, height_);
+      const double pace = 100.0;
+      const double swidth = 5.0;
+      if ( horizontal_ ) {
+         for ( double starty = width_; starty < height_ - width_ - pace; starty += pace  ) {
+            glColor3fv( WHITE_RGB );
+            glRectf(width_ /2. - swidth, starty, width_ /2. + swidth, starty + pace /2.);
+         }
+      }
       glPopMatrix();
    }
    virtual void move( int passed_time_in_ms ) const override {}
 protected:
-   const GLfloat* const color_;
    float width_;
    float height_;
+   bool horizontal_;
 };
 
 class DrawableContainer : public Drawable, public std::vector< const Drawable* > {
