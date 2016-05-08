@@ -115,10 +115,14 @@ public:
       glRectf(0., 0., width_, height_);
       const double pace = 100.0;
       const double swidth = 5.0;
+      glColor3fv( WHITE_RGB );
       if ( horizontal_ ) {
-         for ( double starty = width_; starty < height_ - width_ - pace; starty += pace  ) {
-            glColor3fv( WHITE_RGB );
+         for ( double starty = width_; starty + pace <= height_ - width_; starty += pace  ) {
             glRectf(width_ /2. - swidth, starty, width_ /2. + swidth, starty + pace /2.);
+         }
+      } else {
+         for ( double startx = height_; startx + pace <= width_ - height_; startx += pace  ) {
+            glRectf(startx, height_ /2. - swidth, startx + pace /2., height_ /2. + swidth );
          }
       }
       glPopMatrix();
