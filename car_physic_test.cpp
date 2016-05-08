@@ -206,8 +206,13 @@ public:
          glEnd();
       }
 
-      glColor3fv(RED_RGB);
       glPopMatrix();
+      for ( int sx = -1; sx <= 1; sx += 1 ) {
+         for ( int sy = -1; sy <= 1; sy += 1 ) {
+            std::pair<double, double> pmi = wheelPosition( sx, sy );
+            glRectf( pmi.first - 1., pmi.second - 1. , pmi.first + 1.,  pmi.second + 1. );
+         }
+      }
    }
 
    void stopTurning() const { actionTurning_ =  0; }
