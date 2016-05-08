@@ -168,7 +168,10 @@ public:
 
 class Car : public Drawable {
 public:
-   Car( float x, float y ) : Drawable( x, y ), speed_( 0. ), drifting_( 0. ), angleOfCarOrientation_( 0. ), wheelOrientation_( 0. ), actionTurning_( 0 ), actionAccelerating_( 0 ), turningBaselineDistance_( 0. ), turningRadius_( 0. ) {}
+   Car( float x, float y, const DrawableContainer& world )
+    : Drawable( x, y ), speed_( 0. ), drifting_( 0. ), angleOfCarOrientation_( 0. ), wheelOrientation_( 0. ),
+      actionTurning_( 0 ), actionAccelerating_( 0 ), turningBaselineDistance_( 0. ), turningRadius_( 0. ) ,
+      world_( world ) {}
 
    virtual void drawGL() const override {
       glPushMatrix();
@@ -215,8 +218,31 @@ public:
 
    virtual bool hasAttribute( const std::string& attribute, double x, double y ) const override { return false; }
 
-   std::pair<double, double> wheelPosition( int sx, int sy ) {
-      return std::pair<double, double>(0., 0.);
+   int numberOfWheelsOnAsphalt() const {
+      int retval = 0;
+      for ( int sx = -1; sx <= 1; sx += 2 ) {
+         for ( int sy = -1; sy <= 1; sy += 2 ) {
+            std::pair<double, double> pmi = wheelPosition( sx, sy );
+            if ( world_.hasAttribute( "asphalt", pmi.first, pmi.second ) ) {
+               retval += 1;
+            }
+         }
+      }
+      return retval;
+   }
+
+   std::pair<double, double> wheelPosition( int sx, int sy ) const {
+      const double angleOfCarOrientationInRad = angleOfCarOrientation_ / 180. * PI ;
+      const double ox = -DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE * std::sin( angleOfCarOrientationInRad );
+      const double oy =  DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE * std::cos( angleOfCarOrientationInRad );
+
+      const double upx = -CAR_HEIGHT / 2. * std::sin( angleOfCarOrientationInRad );
+      const double upy =  CAR_HEIGHT / 2. * std::cos( angleOfCarOrientationInRad );
+
+      const double rightx = CAR_WIDTH / 2. * std::cos( angleOfCarOrientationInRad );
+      const double righty = CAR_WIDTH / 2. * std::sin( angleOfCarOrientationInRad );
+
+      return std::pair<double, double>(x_ + ox + sx * upx + sy * rightx, y_ + oy + sx * upy + sy * righty);
    }
 
    void correctingWheelOrientation() const {
@@ -256,20 +282,22 @@ public:
          angleOfCarOrientation_ += sign( wheelOrientation_ ) * ( speed_ / turningRadius_ ) * 180. / PI * DELTA_T;
       }
 
-      const double forwardDirectionAngle = angleOfCarOrientation_ / 180. * PI ;
+      const double angleOfCarOrientationInRad = angleOfCarOrientation_ / 180. * PI ;
 
-      x_ -= speed_ * std::sin( forwardDirectionAngle ) * DELTA_T;
-      y_ += speed_ * std::cos( forwardDirectionAngle ) * DELTA_T;
+      x_ -= speed_ * std::sin( angleOfCarOrientationInRad ) * DELTA_T;
+      y_ += speed_ * std::cos( angleOfCarOrientationInRad ) * DELTA_T;
 
-      // Drifting. It decreases the total motion energy == slows down the car, delta v == sqrt( 2 * a * s ).
       correctingWheelOrientation();
 
+      // maximal speed correction
+      const double currentMaximalSpeed = MAXIMAL_SPEED * ( numberOfWheelsOnAsphalt() > 2 ? 1.0 : 0.35 );
+      
       double acceleration = ( static_cast<double>( actionAccelerating_ ) * ACCELERATION
                             - ( 1. - static_cast<double>( actionAccelerating_ ) ) * ( ACCELERATION + DECELERATION_MINUS_ACCELERATION ) ) * DELTA_T ;
       if ( speed_ > MAXIMAL_TURNING_SPEED && sign( wheelOrientation_ ) != 0. && acceleration > -TURNING_DECELERATION * DELTA_T ) {
          acceleration = -TURNING_DECELERATION  * DELTA_T;
       }
-      if ( speed_ > MAXIMAL_SPEED && acceleration > -( ACCELERATION + DECELERATION_MINUS_ACCELERATION ) * DELTA_T  ) {
+      if ( speed_ > currentMaximalSpeed && acceleration > -( ACCELERATION + DECELERATION_MINUS_ACCELERATION ) * DELTA_T  ) {
         acceleration = -( ACCELERATION + DECELERATION_MINUS_ACCELERATION ) * DELTA_T;
       }
 
@@ -296,6 +324,8 @@ private:
 
    mutable double turningBaselineDistance_;
    mutable double turningRadius_;
+
+   const DrawableContainer& world_;
 };
 
 //-----------------------------------------------------------------------
@@ -303,8 +333,8 @@ private:
 //-----------------------------------------------------------------------
 static int Old_t = 0;
 
-static Car myCar( 100., 100. );
 static DrawableContainer World;
+static Car myCar( 100., 100., World );
 static double GlobalCenterX = 0.;
 static double GlobalCenterY = 0.;
 
