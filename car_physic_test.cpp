@@ -92,8 +92,11 @@ public:
    virtual ~Drawable() {}
    virtual void drawGL() const = 0;
    virtual void move( int passed_time_in_ms ) const = 0;
-   void setX( float x ) { x_ = x; }
-   void setY( float y ) { y_ = y; }
+   void setX( double x ) { x_ = x; }
+   void setY( double y ) { y_ = y; }
+   double getX() const { return x_;  }
+   double getY() const { return y_;  }
+
 protected:
    mutable double x_;
    mutable double y_;
@@ -268,11 +271,18 @@ static DrawableContainer World;
 static double GlobalCenterX = 0.;
 static double GlobalCenterY = 0.;
 
+static double ScreenWidth = 0.;
+static double ScreenHeight = 0.;
+
+
 //-----------------------------------------------------------------------
 //  Callbacks
 //-----------------------------------------------------------------------
 
 void myReshape(int screenWidth, int screenHeight) {
+   ScreenWidth  = screenWidth;
+   ScreenHeight = screenHeight;
+
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity();
    glViewport(0, 0, screenWidth, screenHeight);
@@ -285,9 +295,18 @@ void myReshape(int screenWidth, int screenHeight) {
 void animate(int passed_time_in_ms, GLfloat* diamColor, GLfloat* rectColor) {
    World.move( passed_time_in_ms );
    glPushMatrix();
-   glTranslatef( GlobalCenterX, GlobalCenterY, 0.0f);
+   glTranslatef( -GlobalCenterX + ScreenWidth / 2, -GlobalCenterY + ScreenHeight / 2, 0.0f);
    World.drawGL();
    glPopMatrix();
+}
+
+void setVariableToLimitIfOutOfRadius( double& variable, const double target, const double radius ) {
+  if ( variable < target - radius ) {
+     variable = target - radius;
+  }
+  if ( variable > target +radius ) {
+     variable = target + radius;
+  }
 }
 
 void myDisplay(void) {                    // display callback
@@ -297,6 +316,9 @@ void myDisplay(void) {                    // display callback
 
    glClearColor(0.0, 0.5, 0.0, 1.0);         // background is green
    glClear(GL_COLOR_BUFFER_BIT);            // clear the window
+
+   setVariableToLimitIfOutOfRadius( GlobalCenterX, myCar.getX(), ScreenWidth / 8. );
+   setVariableToLimitIfOutOfRadius( GlobalCenterY, myCar.getY(), ScreenHeight / 8. );
 
    animate(passed_time_in_ms, RED_RGB, BLUE_RGB);
 
