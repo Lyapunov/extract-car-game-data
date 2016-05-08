@@ -221,16 +221,16 @@ public:
       correctingWheelOrientation();
 
       double acceleration = ( static_cast<double>( actionAccelerating_ ) * ACCELERATION - ( 1. - static_cast<double>( actionAccelerating_ ) ) * DECELERATION ) * DELTA_T ;
-      if ( speed_ > MAXIMAL_TURNING_SPEED && sign( wheelOrientation_ ) != 0. && acceleration > 0. ) {
-         acceleration -= ( ACCELERATION + TURNING_DECELERATION)  * DELTA_T;
+      if ( speed_ > MAXIMAL_TURNING_SPEED && sign( wheelOrientation_ ) != 0. && acceleration > -TURNING_DECELERATION * DELTA_T ) {
+         acceleration = -TURNING_DECELERATION  * DELTA_T;
+      }
+      if ( speed_ > MAXIMAL_SPEED && acceleration > -DECELERATION * DELTA_T  ) {
+        acceleration = - DECELERATION * DELTA_T;
       }
 
       speed_ += acceleration;
       if ( speed_ < 0. ) {
          speed_ = 0.;
-      }
-      if ( speed_ > MAXIMAL_SPEED ) {
-         speed_ = MAXIMAL_SPEED;
       }
    }
 
