@@ -89,10 +89,11 @@ double sign( const double number ) {
 
 class Drawable {
 public:
-   Drawable( float x = 0., float y = 0. ) : x_( x ), y_( y ) {}
+   Drawable( double x = 0., double y = 0. ) : x_( x ), y_( y ) {}
    virtual ~Drawable() {}
    virtual void drawGL() const = 0;
    virtual void move( int passed_time_in_ms ) const = 0;
+   virtual bool hasAttribute( const std::string& attribute, double x, double y ) const = 0;
    void setX( double x ) { x_ = x; }
    void setY( double y ) { y_ = y; }
    double getX() const { return x_;  }
@@ -128,6 +129,12 @@ public:
       glPopMatrix();
    }
    virtual void move( int passed_time_in_ms ) const override {}
+   virtual bool hasAttribute( const std::string& attribute, double x, double y ) const override {
+      if ( std::string("asphalt") == attribute && x_ <= x && y_ <= y && x <= x_ + width_ && y <= y_ + height_ ) {
+         return true;
+      }
+      return false;
+   }
 protected:
    float width_;
    float height_;
@@ -144,10 +151,19 @@ public:
       }
    }
    virtual void move( int passed_time_in_ms ) const override {
-       for ( const auto& elem: static_cast< std::vector< const Drawable* > >( *this ) ) {
+      for ( const auto& elem: static_cast< std::vector< const Drawable* > >( *this ) ) {
          elem->move( passed_time_in_ms );
       }
    }
+   virtual bool hasAttribute( const std::string& attribute, double x, double y ) const override {
+      for ( const auto& elem: static_cast< std::vector< const Drawable* > >( *this ) ) {
+         if ( elem->hasAttribute( attribute, x, y ) ) {
+            return true;
+         }
+      }
+      return false;
+   }
+
 };
 
 class Car : public Drawable {
@@ -196,6 +212,12 @@ public:
    void turnRight()   const { actionTurning_ = -1; }
    void stopAccelerating() const  { actionAccelerating_ = +0; }
    void accelerate() const  { actionAccelerating_ = +1; }
+
+   virtual bool hasAttribute( const std::string& attribute, double x, double y ) const override { return false; }
+
+   std::pair<double, double> wheelPosition( int sx, int sy ) {
+      return std::pair<double, double>(0., 0.);
+   }
 
    void correctingWheelOrientation() const {
       // turning
