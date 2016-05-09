@@ -106,7 +106,7 @@ protected:
 
 class AsphaltRectangle : public Drawable {
 public:
-   AsphaltRectangle( float x = 0., float y = 0., float width = 100., float height = 100. )
+   AsphaltRectangle( double x = 0., double y = 0., double width = 300., double height = 1000. )
      : Drawable( x, y ), width_( width ), height_( height ), horizontal_( height > width )  {}
 
    virtual void drawGL() const override {
@@ -339,7 +339,7 @@ private:
 static int Old_t = 0;
 
 static DrawableContainer World;
-static Car myCar( 100., 100., World );
+static Car myCar( 200., 200., World );
 static double GlobalCenterX = 0.;
 static double GlobalCenterY = 0.;
 
@@ -463,10 +463,14 @@ void myKeyboardSpecialKeysUp(int key, int x, int y) {
 int main(int argc, char** argv)
 {
    // building the world
-   AsphaltRectangle b1( 100.f, 0.f, 300.f, 2000.f );
-   AsphaltRectangle b2( 100.f, 0.f, 2000.f, 300.f );
-   AsphaltRectangle b3( 1800.f, 0.f, 300.f, 2000.f );
-   AsphaltRectangle b4( 100.f, 1700.f, 2000.f, 300.f );
+   double roadWidth = 300.;
+   double roadLength = 3000.;
+   double roadStartX = 100.;
+   double roadStartY = 100.;
+   AsphaltRectangle b1( roadStartX, roadStartY, roadWidth,  roadLength );
+   AsphaltRectangle b2( roadStartX, roadStartY, roadLength, roadWidth );
+   AsphaltRectangle b3( roadStartX + roadLength - roadWidth, roadStartY, roadWidth, roadLength );
+   AsphaltRectangle b4( roadStartX, roadStartY + roadLength - roadWidth, roadLength, roadWidth );
    World.addChild( b1 );
    World.addChild( b2 );
    World.addChild( b3 );
