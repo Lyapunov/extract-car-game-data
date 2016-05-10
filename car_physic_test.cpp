@@ -36,36 +36,80 @@ GLfloat YELLOW_RGB[] = {1.0, 1.0, 0.0};
 GLfloat GRAY_RGB[] = {0.25, 0.25, 0.25};
 GLfloat WHITE_RGB[] = {1., 1., 1.};
 
- double PI = 3.141592653589793;
- double NUMERICAL_ERROR = 1e-10;
- double DELTA_T = 0.001;
+double PI = 3.141592653589793;
+double NUMERICAL_ERROR = 1e-10;
+double DELTA_T = 0.001;
 
- double CAR_WIDTH = 50.;
- double CAR_HEIGHT = 100.;
- double MAXIMAL_STEERING_ANGLE = 40.;
- double STEERING_SPEED = 60.;
- double MAXIMAL_SPEED = 200.;
- double MAXIMAL_TURNING_SPEED = 150.;
- double ACCELERATION = 40.;
- double DECELERATION_MINUS_ACCELERATION = 20.;
- double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE =0.5; // to me 0.5 is natural
- double TURNING_CONST_ANGLE = 0.; // Death rally should use it instead of speed / radius ( maybe calculating radius is too expensive ) - use 1.
- double TURNING_DECELERATION = 10.;  // Not realistic physically
+class CarPhysicalParameters {
+public:
+   CarPhysicalParameters(  double carWidth = 50.,
+                           double carHeight = 100.,
+                           double maximalSteeringAngle = 40.,
+                           double steeringSpeed = 60.,
+                           double maximalSpeed = 200.,
+                           double maximalTurningSpeed = 150.,
+                           double acceleration = 40.,
+                           double decelerationMinusAcceleration = 20.,
+                           double relativeDistanceBetweenCenterAndTurningAxle =0.5,
+                           double turningConstAngle = 0.,
+                           double turningDeceleration = 10. )
+    : carWidth_(carWidth),
+      carHeight_(carHeight),
+      maximalSteeringAngle_(maximalSteeringAngle),
+      steeringSpeed_(steeringSpeed),
+      maximalSpeed_(maximalSpeed),
+      maximalTurningSpeed_(maximalTurningSpeed),
+      acceleration_(acceleration),
+      decelerationMinusAcceleration_(decelerationMinusAcceleration),
+      relativeDistanceBetweenCenterAndTurningAxle_(relativeDistanceBetweenCenterAndTurningAxle), // to me 0.5 is natural
+      turningConstAngle_(turningConstAngle), // death rally should use it instead of speed / radius ( maybe calculating radius is too expensive ) - use 1.
+      turningDeceleration_(turningDeceleration)  // not realistic physically
+   {}
+
+   double getCarWidth() const { return carWidth_; }
+   double getCarHeight() const { return carHeight_; }
+   double getMaximalSteeringAngle() const { return maximalSteeringAngle_; }
+   double getSteeringSpeed() const { return steeringSpeed_; }
+   double getMaximalSpeed() const { return maximalSpeed_; }
+   double getMaximalTurningSpeed() const { return maximalTurningSpeed_; }
+   double getAcceleration() const { return acceleration_; }
+   double getDecelerationMinusAcceleration() const { return decelerationMinusAcceleration_; }
+   double getRelativeDistanceBetweenCenterAndTurningAxle() const { return relativeDistanceBetweenCenterAndTurningAxle_; }
+   double getTurningConstAngle() const { return turningConstAngle_; }
+   double getTurningDeceleration() const { return turningDeceleration_; }
+
+   double getTurningBaseline( const double alpha ) const {
+      return ( carWidth_ + calculatingMagicNumberB( alpha ) + sqrt( calculatingMagicNumberB( alpha ) * calculatingMagicNumberB( alpha ) + 4 * ( getCarHeightUpper() * getCarHeightLower() ) ) ) / 2.; 
+   }
+
+   double getDistanceBetweenCenterAndTurningAxle() const { return relativeDistanceBetweenCenterAndTurningAxle_ * carHeight_; }
+   double getDistanceBetweenCenterAndTurningAxle2() const { return getDistanceBetweenCenterAndTurningAxle() * getDistanceBetweenCenterAndTurningAxle(); }
+
+   double getCarHeightUpper() const { return ( 0.5 + relativeDistanceBetweenCenterAndTurningAxle_ ) * carHeight_ ; }
+   double getCarHeightLower() const { return ( 0.5 - relativeDistanceBetweenCenterAndTurningAxle_ ) * carHeight_;  }
+
+private:
+   double calculatingMagicNumberB( const double alpha ) const {
+      return ( this->getCarHeightUpper() + this->getCarHeightLower() ) / ( std::tan( fabs(alpha) / 180. * PI ) + 1e-20 );
+   }
+
+   double carWidth_;
+   double carHeight_;
+   double maximalSteeringAngle_;
+   double steeringSpeed_;
+   double maximalSpeed_;
+   double maximalTurningSpeed_;
+   double acceleration_;
+   double decelerationMinusAcceleration_;
+   double relativeDistanceBetweenCenterAndTurningAxle_; // to me 0.5 is natural
+   double turningConstAngle_; // death rally should use it instead of speed / radius ( maybe calculating radius is too expensive ) - use 1.
+   double turningDeceleration_;  // not realistic physically
+};
 
 // Calculated constants
 
- double CAR_HEIGHT_UPPER = ( 0.5 + RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE ) * CAR_HEIGHT;
- double CAR_HEIGHT_LOWER = ( 0.5 - RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE ) * CAR_HEIGHT;
- double DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE * CAR_HEIGHT;
- double DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE_2 = DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE * DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE;
 
- double calculatingMagicNumberB( const double alpha ) {
-   return ( CAR_HEIGHT_UPPER + CAR_HEIGHT_LOWER ) / ( std::tan( fabs(alpha) / 180. * PI ) + 1e-20 );
-}
 
- double turningBaseline( const double alpha ) {
-   return ( CAR_WIDTH + calculatingMagicNumberB( alpha ) + sqrt( calculatingMagicNumberB( alpha ) * calculatingMagicNumberB( alpha ) + 4 * ( CAR_HEIGHT_UPPER * CAR_HEIGHT_LOWER ) ) ) / 2.; 
-}
 
 double sign( const double number ) {
    if ( number > NUMERICAL_ERROR ) {
@@ -163,7 +207,7 @@ public:
 class Car : public Drawable {
 public:
    Car( float x, float y, const DrawableContainer& world )
-    : Drawable( x, y ), speed_( 0. ), drifting_( 0. ), angleOfCarOrientation_( 0. ), wheelOrientation_( 0. ),
+    : params_(), Drawable( x, y ), speed_( 0. ), drifting_( 0. ), angleOfCarOrientation_( 0. ), wheelOrientation_( 0. ),
       actionTurning_( 0 ), actionAccelerating_( 0 ), turningBaselineDistance_( 0. ), turningRadius_( 0. ) ,
       world_( world ) {}
 
@@ -171,10 +215,10 @@ public:
       glPushMatrix();
       glTranslatef(x_, y_, 0.0f);
       glRotatef(angleOfCarOrientation_, 0.0, 0.0, 1.0);
-      glTranslatef(0, DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE, 0.0f);
+      glTranslatef(0, params_.getDistanceBetweenCenterAndTurningAxle(), 0.0f);
       glColor3fv(BLUE_RGB);
-      const float w2 = CAR_WIDTH / 2.;
-      const float h2 = CAR_HEIGHT / 2.;
+      const float w2 = params_.getCarWidth() / 2.;
+      const float h2 = params_.getCarHeight() / 2.;
       glRectf(- w2, - h2, + w2, + h2);
       glColor3fv(RED_RGB);
       glRectf(- w2, + h2 - h2 / 4., + w2 , + h2 );
@@ -184,7 +228,7 @@ public:
             glPushMatrix();
             const double mirroring = sign( wheelOrientation_ ) < 0 ? -1.0 : 1.0 ;
             glTranslatef( mirroring * sx * w2, sy * h2, 0.0f);
-            const double myTan = ( sy == 1 ? CAR_HEIGHT_UPPER : CAR_HEIGHT_LOWER ) / ( sx * w2 + turningBaselineDistance_ );
+            const double myTan = ( sy == 1 ? params_.getCarHeightUpper() : params_.getCarHeightLower() ) / ( sx * w2 + turningBaselineDistance_ );
             const double wheelAngle = sign( wheelOrientation_ ) * std::atan( myTan ) / PI * 180.;
             glRotatef( 1. *sy * wheelAngle, 0.0, 0.0, 1.0);
             glRectf( - w2 /4., - h2 / 4. , + w2 / 4.,  + h2 / 4. );
@@ -195,8 +239,8 @@ public:
       glColor3fv(YELLOW_RGB);
       if ( fabs( wheelOrientation_ ) > 1. ) {
          glBegin(GL_LINES);
-         glVertex2f( 0, -h2 + CAR_HEIGHT_LOWER );
-         glVertex2f( -sign( wheelOrientation_ ) * turningBaselineDistance_, -h2 + CAR_HEIGHT_LOWER );
+         glVertex2f( 0, -h2 + params_.getCarHeightLower() );
+         glVertex2f( -sign( wheelOrientation_ ) * turningBaselineDistance_, -h2 + params_.getCarHeightLower() );
          glEnd();
       }
 
@@ -232,14 +276,14 @@ public:
 
    std::pair<double, double> wheelPosition( int sx, int sy ) const {
       const double angleOfCarOrientationInRad = angleOfCarOrientation_ / 180. * PI ;
-      const double ox = -DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE * std::sin( angleOfCarOrientationInRad );
-      const double oy =  DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE * std::cos( angleOfCarOrientationInRad );
+      const double ox = -params_.getDistanceBetweenCenterAndTurningAxle() * std::sin( angleOfCarOrientationInRad );
+      const double oy =  params_.getDistanceBetweenCenterAndTurningAxle() * std::cos( angleOfCarOrientationInRad );
 
-      const double upx = -CAR_HEIGHT / 2. * std::sin( angleOfCarOrientationInRad );
-      const double upy =  CAR_HEIGHT / 2. * std::cos( angleOfCarOrientationInRad );
+      const double upx = -params_.getCarHeight() / 2. * std::sin( angleOfCarOrientationInRad );
+      const double upy =  params_.getCarHeight() / 2. * std::cos( angleOfCarOrientationInRad );
 
-      const double rightx = CAR_WIDTH / 2. * std::cos( angleOfCarOrientationInRad );
-      const double righty = CAR_WIDTH / 2. * std::sin( angleOfCarOrientationInRad );
+      const double rightx = params_.getCarWidth() / 2. * std::cos( angleOfCarOrientationInRad );
+      const double righty = params_.getCarWidth() / 2. * std::sin( angleOfCarOrientationInRad );
 
       return std::pair<double, double>(x_ + ox + sx * upx + sy * rightx, y_ + oy + sx * upy + sy * righty);
    }
@@ -247,26 +291,26 @@ public:
    void correctingWheelOrientation() const {
       // turning
       if ( !actionTurning_ ) {
-         if ( fabs( wheelOrientation_ ) < DELTA_T * STEERING_SPEED ) {
+         if ( fabs( wheelOrientation_ ) < DELTA_T * params_.getSteeringSpeed() ) {
             wheelOrientation_ = 0.;
             return;
          }
-         wheelOrientation_ -= sign( wheelOrientation_ ) * DELTA_T * STEERING_SPEED;
+         wheelOrientation_ -= sign( wheelOrientation_ ) * DELTA_T * params_.getSteeringSpeed();
       } else {
-         wheelOrientation_ += static_cast<double>( actionTurning_ ) * DELTA_T * STEERING_SPEED;
+         wheelOrientation_ += static_cast<double>( actionTurning_ ) * DELTA_T * params_.getSteeringSpeed();
       }
-      if ( fabs( wheelOrientation_ ) > MAXIMAL_STEERING_ANGLE ) {
-         wheelOrientation_ = MAXIMAL_STEERING_ANGLE * sign( wheelOrientation_ );
+      if ( fabs( wheelOrientation_ ) > params_.getMaximalSteeringAngle() ) {
+         wheelOrientation_ = params_.getMaximalSteeringAngle() * sign( wheelOrientation_ );
       }
    }
 
    void calculateTurningRadiusAndBaseline() const {
-      if ( fabs( TURNING_CONST_ANGLE ) ) {
-         turningRadius_           = speed_ * DELTA_T / 2. / std::sin( TURNING_CONST_ANGLE * DELTA_T / 2. );
+      if ( fabs( params_.getTurningConstAngle() ) ) {
+         turningRadius_           = speed_ * DELTA_T / 2. / std::sin( params_.getTurningConstAngle() * DELTA_T / 2. );
          turningBaselineDistance_ = turningRadius_;
       } else {
-         turningBaselineDistance_ = turningBaseline( wheelOrientation_ );
-         turningRadius_           = std::sqrt( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE_2 + turningBaselineDistance_ * turningBaselineDistance_ );
+         turningBaselineDistance_ = params_.getTurningBaseline( wheelOrientation_ );
+         turningRadius_           = std::sqrt( params_.getDistanceBetweenCenterAndTurningAxle2() + turningBaselineDistance_ * turningBaselineDistance_ );
       }
    }
 
@@ -274,9 +318,9 @@ public:
    void move_in_a_millisecond() const {
       calculateTurningRadiusAndBaseline();
 
-      if ( fabs( TURNING_CONST_ANGLE ) )
+      if ( fabs( params_.getTurningConstAngle() ) )
       {
-         angleOfCarOrientation_ += sign( wheelOrientation_ ) * TURNING_CONST_ANGLE * 180. / PI * DELTA_T;
+         angleOfCarOrientation_ += sign( wheelOrientation_ ) * params_.getTurningConstAngle() * 180. / PI * DELTA_T;
       } else {
          angleOfCarOrientation_ += sign( wheelOrientation_ ) * ( speed_ / turningRadius_ ) * 180. / PI * DELTA_T;
       }
@@ -289,15 +333,15 @@ public:
       correctingWheelOrientation();
 
       // maximal speed correction
-      const double currentMaximalSpeed = MAXIMAL_SPEED * ( numberOfWheelsOnAsphalt() > 2 ? 1.0 : 0.35 );
+      const double currentMaximalSpeed = params_.getMaximalSpeed() * ( numberOfWheelsOnAsphalt() > 2 ? 1.0 : 0.35 );
       
-      double acceleration = ( static_cast<double>( actionAccelerating_ ) * ACCELERATION
-                            - ( 1. - static_cast<double>( actionAccelerating_ ) ) * ( ACCELERATION + DECELERATION_MINUS_ACCELERATION ) ) * DELTA_T ;
-      if ( speed_ > MAXIMAL_TURNING_SPEED && sign( wheelOrientation_ ) != 0. && acceleration > -TURNING_DECELERATION * DELTA_T ) {
-         acceleration = -TURNING_DECELERATION  * DELTA_T;
+      double acceleration = ( static_cast<double>( actionAccelerating_ ) * params_.getAcceleration()
+                            - ( 1. - static_cast<double>( actionAccelerating_ ) ) * ( params_.getAcceleration() + params_.getDecelerationMinusAcceleration() ) ) * DELTA_T ;
+      if ( speed_ > params_.getMaximalTurningSpeed() && sign( wheelOrientation_ ) != 0. && acceleration > -params_.getTurningDeceleration() * DELTA_T ) {
+         acceleration = -params_.getTurningDeceleration()  * DELTA_T;
       }
-      if ( speed_ > currentMaximalSpeed && acceleration > -( ACCELERATION + DECELERATION_MINUS_ACCELERATION ) * DELTA_T  ) {
-        acceleration = -( ACCELERATION + DECELERATION_MINUS_ACCELERATION ) * DELTA_T;
+      if ( speed_ > currentMaximalSpeed && acceleration > -( params_.getAcceleration() + params_.getDecelerationMinusAcceleration() ) * DELTA_T  ) {
+        acceleration = -( params_.getAcceleration() + params_.getDecelerationMinusAcceleration() ) * DELTA_T;
       }
 
       speed_ += acceleration;
@@ -313,6 +357,8 @@ public:
       }
    }
 private:
+   const CarPhysicalParameters params_;
+
    mutable double speed_;
    mutable double drifting_;
    mutable double angleOfCarOrientation_; 
