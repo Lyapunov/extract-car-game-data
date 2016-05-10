@@ -36,34 +36,34 @@ GLfloat YELLOW_RGB[] = {1.0, 1.0, 0.0};
 GLfloat GRAY_RGB[] = {0.25, 0.25, 0.25};
 GLfloat WHITE_RGB[] = {1., 1., 1.};
 
-constexpr double PI = 3.141592653589793;
+ double PI = 3.141592653589793;
+ double NUMERICAL_ERROR = 1e-10;
+ double DELTA_T = 0.001;
 
-constexpr double NUMERICAL_ERROR = 1e-10;
-constexpr double DELTA_T = 0.001;
-constexpr double CAR_WIDTH = 50.;
-constexpr double CAR_HEIGHT = 100.;
-constexpr double MAXIMAL_STEERING_ANGLE = 40.;
-constexpr double STEERING_SPEED = 60.;
-constexpr double MAXIMAL_SPEED = 200.;
-constexpr double MAXIMAL_TURNING_SPEED = 150.;
-constexpr double ACCELERATION = 40.;
-constexpr double DECELERATION_MINUS_ACCELERATION = 20.;
-constexpr double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE =0.5; // to me 0.5 is natural
-constexpr double TURNING_CONST_ANGLE = 0.; // Death rally should use it instead of speed / radius ( maybe calculating radius is too expensive ) - use 1.
-constexpr double TURNING_DECELERATION = 10.;  // Not realistic physically
+ double CAR_WIDTH = 50.;
+ double CAR_HEIGHT = 100.;
+ double MAXIMAL_STEERING_ANGLE = 40.;
+ double STEERING_SPEED = 60.;
+ double MAXIMAL_SPEED = 200.;
+ double MAXIMAL_TURNING_SPEED = 150.;
+ double ACCELERATION = 40.;
+ double DECELERATION_MINUS_ACCELERATION = 20.;
+ double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE =0.5; // to me 0.5 is natural
+ double TURNING_CONST_ANGLE = 0.; // Death rally should use it instead of speed / radius ( maybe calculating radius is too expensive ) - use 1.
+ double TURNING_DECELERATION = 10.;  // Not realistic physically
 
 // Calculated constants
 
-constexpr double CAR_HEIGHT_UPPER = ( 0.5 + RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE ) * CAR_HEIGHT;
-constexpr double CAR_HEIGHT_LOWER = ( 0.5 - RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE ) * CAR_HEIGHT;
-constexpr double DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE * CAR_HEIGHT;
-constexpr double DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE_2 = DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE * DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE;
+ double CAR_HEIGHT_UPPER = ( 0.5 + RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE ) * CAR_HEIGHT;
+ double CAR_HEIGHT_LOWER = ( 0.5 - RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE ) * CAR_HEIGHT;
+ double DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE = RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE * CAR_HEIGHT;
+ double DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE_2 = DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE * DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE;
 
-constexpr double calculatingMagicNumberB( const double alpha ) {
+ double calculatingMagicNumberB( const double alpha ) {
    return ( CAR_HEIGHT_UPPER + CAR_HEIGHT_LOWER ) / ( std::tan( fabs(alpha) / 180. * PI ) + 1e-20 );
 }
 
-constexpr double turningBaseline( const double alpha ) {
+ double turningBaseline( const double alpha ) {
    return ( CAR_WIDTH + calculatingMagicNumberB( alpha ) + sqrt( calculatingMagicNumberB( alpha ) * calculatingMagicNumberB( alpha ) + 4 * ( CAR_HEIGHT_UPPER * CAR_HEIGHT_LOWER ) ) ) / 2.; 
 }
 
