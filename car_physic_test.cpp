@@ -39,18 +39,18 @@ GLfloat WHITE_RGB[] = {1., 1., 1.};
 constexpr double PI = 3.141592653589793;
 
 constexpr double NUMERICAL_ERROR = 1e-10;
+constexpr double DELTA_T = 0.001;
 constexpr double CAR_WIDTH = 50.;
 constexpr double CAR_HEIGHT = 100.;
 constexpr double MAXIMAL_STEERING_ANGLE = 40.;
 constexpr double STEERING_SPEED = 60.;
-constexpr double DELTA_T = 0.001;
 constexpr double MAXIMAL_SPEED = 200.;
+constexpr double MAXIMAL_TURNING_SPEED = 150.;
 constexpr double ACCELERATION = 40.;
 constexpr double DECELERATION_MINUS_ACCELERATION = 20.;
 constexpr double RELATIVE_DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE =0.5; // to me 0.5 is natural
 constexpr double TURNING_CONST_ANGLE = 0.; // Death rally should use it instead of speed / radius ( maybe calculating radius is too expensive ) - use 1.
 constexpr double TURNING_DECELERATION = 10.;  // Not realistic physically
-constexpr double MAXIMAL_TURNING_SPEED = 150.;
 
 // Calculated constants
 
