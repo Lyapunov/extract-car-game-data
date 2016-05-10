@@ -67,12 +67,6 @@ constexpr double turningBaseline( const double alpha ) {
    return ( CAR_WIDTH + calculatingMagicNumberB( alpha ) + sqrt( calculatingMagicNumberB( alpha ) * calculatingMagicNumberB( alpha ) + 4 * ( CAR_HEIGHT_UPPER * CAR_HEIGHT_LOWER ) ) ) / 2.; 
 }
 
-constexpr double turningRadius( const double alpha ) {
-   return std::sqrt( DISTANCE_BETWEEN_CENTER_AND_TURNING_AXLE_2 + turningBaseline( alpha ) * turningBaseline( alpha ) );
-}
-
-const double MINIMAL_TURNING_RADIUS = turningRadius( MAXIMAL_STEERING_ANGLE );
-
 double sign( const double number ) {
    if ( number > NUMERICAL_ERROR ) {
       return 1.;
