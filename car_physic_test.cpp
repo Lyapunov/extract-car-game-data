@@ -33,6 +33,7 @@ GLfloat BLUE_RGB[] = {0.0, 0.0, 1.0};
 GLfloat GREEN_RGB[] = {0.0, 0.5, 0.0};
 GLfloat BLACK_RGB[] = {0.0, 0.0, 0.0};
 GLfloat YELLOW_RGB[] = {1.0, 1.0, 0.0};
+GLfloat MAGENTA_RGB[] = {1.0, 0.0, 1.0};
 GLfloat GRAY_RGB[] = {0.25, 0.25, 0.25};
 GLfloat WHITE_RGB[] = {1., 1., 1.};
 
@@ -52,7 +53,7 @@ public:
                            double decelerationMinusAcceleration = 20.,
                            double relativeDistanceBetweenCenterAndTurningAxle =0.5,
                            double turningConstAngle = 0.,
-                           double turningDeceleration = 10. )
+                           double turningDeceleration = 20. )
     : carWidth_(carWidth),
       carHeight_(carHeight),
       maximalSteeringAngle_(maximalSteeringAngle),
@@ -84,10 +85,8 @@ public:
    double getRelativeDistanceBetweenCenterAndTurningAxle() const { return relativeDistanceBetweenCenterAndTurningAxle_; }
    double getTurningConstAngle() const { return turningConstAngle_; }
    double getTurningDeceleration() const { return turningDeceleration_; }
-
    double getDistanceBetweenCenterAndTurningAxle() const { return distanceBetweenCenterAndTurningAxle_; }
    double getDistanceBetweenCenterAndTurningAxle2() const { return distanceBetweenCenterAndTurningAxle2_; }
-
    double getCarHeightUpper() const { return carHeightUpper_; }
    double getCarHeightLower() const { return carHeightLower_; }
 
@@ -251,6 +250,13 @@ public:
          glBegin(GL_LINES);
          glVertex2f( 0, -h2 + params_.getCarHeightLower() );
          glVertex2f( -sign( wheelOrientation_ ) * turningBaselineDistance_, -h2 + params_.getCarHeightLower() );
+         glEnd();
+      }
+      glColor3fv(MAGENTA_RGB);
+      if ( fabs( speed_ ) > 1. ) {
+         glBegin(GL_LINES);
+         glVertex2f( 0, -h2 + params_.getCarHeightLower() );
+         glVertex2f( 0, -h2 + params_.getCarHeightLower() + speed_ );
          glEnd();
       }
 
