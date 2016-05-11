@@ -63,7 +63,14 @@ public:
       decelerationMinusAcceleration_(decelerationMinusAcceleration),
       relativeDistanceBetweenCenterAndTurningAxle_(relativeDistanceBetweenCenterAndTurningAxle), // to me 0.5 is natural
       turningConstAngle_(turningConstAngle), // death rally should use it instead of speed / radius ( maybe calculating radius is too expensive ) - use 1.
-      turningDeceleration_(turningDeceleration)  // not realistic physically
+      turningDeceleration_(turningDeceleration), // not realistic physically
+
+      // simply calculated values
+      distanceBetweenCenterAndTurningAxle_( relativeDistanceBetweenCenterAndTurningAxle_ * carHeight_ ),
+      distanceBetweenCenterAndTurningAxle2_( distanceBetweenCenterAndTurningAxle_ * distanceBetweenCenterAndTurningAxle_ ),
+      carHeightUpper_( ( 0.5 + relativeDistanceBetweenCenterAndTurningAxle_ ) * carHeight_ ), 
+      carHeightLower_( ( 0.5 - relativeDistanceBetweenCenterAndTurningAxle_ ) * carHeight_ ),
+      carHeightMagicProduct_ ( carHeightUpper_ * carHeightLower_ )
    {}
 
    double getCarWidth() const { return carWidth_; }
@@ -78,32 +85,35 @@ public:
    double getTurningConstAngle() const { return turningConstAngle_; }
    double getTurningDeceleration() const { return turningDeceleration_; }
 
+   double getDistanceBetweenCenterAndTurningAxle() const { return distanceBetweenCenterAndTurningAxle_; }
+   double getDistanceBetweenCenterAndTurningAxle2() const { return distanceBetweenCenterAndTurningAxle2_; }
+
+   double getCarHeightUpper() const { return carHeightUpper_; }
+   double getCarHeightLower() const { return carHeightLower_; }
+
    double getTurningBaseline( const double alpha ) const {
-      return ( carWidth_ + calculatingMagicNumberB( alpha ) + sqrt( calculatingMagicNumberB( alpha ) * calculatingMagicNumberB( alpha ) + 4 * ( getCarHeightUpper() * getCarHeightLower() ) ) ) / 2.; 
+      return ( carWidth_ + calculatingMagicNumberB( alpha ) + sqrt( calculatingMagicNumberB( alpha ) * calculatingMagicNumberB( alpha ) + 4 * carHeightMagicProduct_ ) ) / 2.; 
    }
-
-   double getDistanceBetweenCenterAndTurningAxle() const { return relativeDistanceBetweenCenterAndTurningAxle_ * carHeight_; }
-   double getDistanceBetweenCenterAndTurningAxle2() const { return getDistanceBetweenCenterAndTurningAxle() * getDistanceBetweenCenterAndTurningAxle(); }
-
-   double getCarHeightUpper() const { return ( 0.5 + relativeDistanceBetweenCenterAndTurningAxle_ ) * carHeight_ ; }
-   double getCarHeightLower() const { return ( 0.5 - relativeDistanceBetweenCenterAndTurningAxle_ ) * carHeight_;  }
 
 private:
-   double calculatingMagicNumberB( const double alpha ) const {
-      return ( this->getCarHeightUpper() + this->getCarHeightLower() ) / ( std::tan( fabs(alpha) / 180. * PI ) + 1e-20 );
-   }
+   double calculatingMagicNumberB( const double alpha ) const { return carHeight_ / ( std::tan( fabs(alpha) / 180. * PI ) + 1e-20 ); }
 
-   double carWidth_;
-   double carHeight_;
-   double maximalSteeringAngle_;
-   double steeringSpeed_;
-   double maximalSpeed_;
-   double maximalTurningSpeed_;
-   double acceleration_;
-   double decelerationMinusAcceleration_;
-   double relativeDistanceBetweenCenterAndTurningAxle_; // to me 0.5 is natural
-   double turningConstAngle_; // death rally should use it instead of speed / radius ( maybe calculating radius is too expensive ) - use 1.
-   double turningDeceleration_;  // not realistic physically
+   const double carWidth_;
+   const double carHeight_;
+   const double maximalSteeringAngle_;
+   const double steeringSpeed_;
+   const double maximalSpeed_;
+   const double maximalTurningSpeed_;
+   const double acceleration_;
+   const double decelerationMinusAcceleration_;
+   const double relativeDistanceBetweenCenterAndTurningAxle_; // to me 0.5 is natural
+   const double turningConstAngle_; // death rally should use it instead of speed / radius ( maybe calculating radius is too expensive ) - use 1.
+   const double turningDeceleration_;  // not realistic physically
+   const double distanceBetweenCenterAndTurningAxle_;
+   const double distanceBetweenCenterAndTurningAxle2_;
+   const double carHeightUpper_;
+   const double carHeightLower_;
+   const double carHeightMagicProduct_;
 };
 
 // Calculated constants
