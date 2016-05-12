@@ -269,11 +269,7 @@ public:
          for ( int sy = -1; sy <= 1; sy += 2 ) {
             glPushMatrix();
             glTranslatef( sx * w2, sy * h2, 0.0f);
-            const double myTan = fabs( ( sy == 1 ? params_.getCarHeightUpper() : params_.getCarHeightLower() ) / ( sx * w2 + turningBaselineDistance_ ) );
-            const double angleNullifier = ( fabs( sign( wheelOrientation_ ) )  > NUMERICAL_ERROR ? 1.0 : 0.0 );
-            const double signOfAngle = 1. *sy * angleNullifier * sign( sx * w2 + sign( wheelOrientation_ ) * turningBaselineDistance_ );
-            const double wheelAngle = signOfAngle * std::atan( myTan ) / PI * 180.;
-            glRotatef( wheelAngle, 0.0, 0.0, 1.0);
+            glRotatef( wheelAngle( sx, sy ), 0.0, 0.0, 1.0 );
             glRectf( - w2 /4., - h2 / 4. , + w2 / 4.,  + h2 / 4. );
             glPopMatrix();
          }
@@ -336,6 +332,13 @@ public:
       const double righty = params_.getCarWidth() / 2. * std::sin( angleOfCarOrientationInRad );
 
       return std::pair<double, double>(x_ + ox + sx * upx + sy * rightx, y_ + oy + sx * upy + sy * righty);
+   }
+
+   const double wheelAngle( int sx, int sy ) const {
+      const double wheelAngleTan = fabs( ( sy == 1 ? params_.getCarHeightUpper() : params_.getCarHeightLower() ) / ( sx * params_.getCarWidth() / 2. + turningBaselineDistance_ ) );
+      const double signNullifier = ( fabs( sign( wheelOrientation_ ) )  > NUMERICAL_ERROR ? 1.0 : 0.0 );
+      const double signOfAngle = 1. *sy * signNullifier * sign( sx * params_.getCarWidth() / 2. + sign( wheelOrientation_ ) * turningBaselineDistance_ );
+      const double wheelAngle = signOfAngle * std::atan( wheelAngleTan ) / PI * 180.;
    }
 
    std::pair<double, double> carCenterPosition( int sx, int sy ) const {
