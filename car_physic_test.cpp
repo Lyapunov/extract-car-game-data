@@ -337,6 +337,10 @@ public:
       return std::pair<double, double>(x_ + ox + sx * upx + sy * rightx, y_ + oy + sx * upy + sy * righty);
    }
 
+   std::pair<double, double> carCenterPosition( int sx, int sy ) const {
+      return wheelPosition( sx, sy );
+   }
+
    void correctingWheelOrientation() const {
       // turning
       if ( !actionTurning_ ) {
