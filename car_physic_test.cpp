@@ -334,11 +334,11 @@ public:
       return std::pair<double, double>(x_ + ox + sx * upx + sy * rightx, y_ + oy + sx * upy + sy * righty);
    }
 
-   const double wheelAngle( int sx, int sy ) const {
+   double wheelAngle( int sx, int sy ) const {
       const double wheelAngleTan = fabs( ( sy == 1 ? params_.getCarHeightUpper() : params_.getCarHeightLower() ) / ( sx * params_.getCarWidth() / 2. + turningBaselineDistance_ ) );
       const double signNullifier = ( fabs( sign( wheelOrientation_ ) )  > NUMERICAL_ERROR ? 1.0 : 0.0 );
       const double signOfAngle = 1. *sy * signNullifier * sign( sx * params_.getCarWidth() / 2. + sign( wheelOrientation_ ) * turningBaselineDistance_ );
-      const double wheelAngle = signOfAngle * std::atan( wheelAngleTan ) / PI * 180.;
+      return signOfAngle * std::atan( wheelAngleTan ) / PI * 180.;
    }
 
    std::pair<double, double> carCenterPosition( int sx, int sy ) const {
