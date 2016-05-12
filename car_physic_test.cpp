@@ -267,9 +267,12 @@ public:
       glColor3fv(BLACK_RGB);
       for ( int sx = -1; sx <= 1; sx += 2 ) {
          for ( int sy = -1; sy <= 1; sy += 2 ) {
+            const std::pair<double, double> rp = wheelRelativePosition( sx, sy );
+            const double ra = wheelAngle( sx, sy );
+
             glPushMatrix();
-            glTranslatef( sx * w2, sy * h2, 0.0f);
-            glRotatef( wheelAngle( sx, sy ), 0.0, 0.0, 1.0 );
+            glTranslatef( rp.first, rp.second, 0.0f);
+            glRotatef( ra, 0.0, 0.0, 1.0 );
             glRectf( - w2 /4., - h2 / 4. , + w2 / 4.,  + h2 / 4. );
             glPopMatrix();
          }
