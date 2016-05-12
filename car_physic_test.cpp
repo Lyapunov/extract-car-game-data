@@ -320,24 +320,32 @@ public:
       return retval;
    }
 
+
+   std::pair<double, double> wheelRelativePosition( int sx, int sy ) const {
+      return std::pair<double, double>( sx * params_.getCarWidth() / 2., sy * params_.getCarHeight() / 2. );
+   }
+
    std::pair<double, double> wheelPosition( int sx, int sy ) const {
+      const std::pair<double, double> rp = wheelRelativePosition( sx, sy ); 
+
       const double angleOfCarOrientationInRad = angleOfCarOrientation_ / 180. * PI ;
       const double ox = -params_.getDistanceBetweenCenterAndTurningAxle() * std::sin( angleOfCarOrientationInRad );
       const double oy =  params_.getDistanceBetweenCenterAndTurningAxle() * std::cos( angleOfCarOrientationInRad );
 
-      const double upx = -params_.getCarHeight() / 2. * std::sin( angleOfCarOrientationInRad );
-      const double upy =  params_.getCarHeight() / 2. * std::cos( angleOfCarOrientationInRad );
+      const double upx = -std::sin( angleOfCarOrientationInRad );
+      const double upy =  std::cos( angleOfCarOrientationInRad );
+      const double rightx = std::cos( angleOfCarOrientationInRad );
+      const double righty = std::sin( angleOfCarOrientationInRad );
 
-      const double rightx = params_.getCarWidth() / 2. * std::cos( angleOfCarOrientationInRad );
-      const double righty = params_.getCarWidth() / 2. * std::sin( angleOfCarOrientationInRad );
-
-      return std::pair<double, double>(x_ + ox + sx * upx + sy * rightx, y_ + oy + sx * upy + sy * righty);
+      return std::pair<double, double>(x_ + ox + rp.first * rightx + rp.second * upx, y_ + oy + rp.first * righty + rp.second * upy);
    }
 
    double wheelAngle( int sx, int sy ) const {
-      const double wheelAngleTan = fabs( ( sy == 1 ? params_.getCarHeightUpper() : params_.getCarHeightLower() ) / ( sx * params_.getCarWidth() / 2. + turningBaselineDistance_ ) );
+      const std::pair<double, double> rp = wheelRelativePosition( sx, sy ); 
+
+      const double wheelAngleTan = fabs( ( sy == 1 ? params_.getCarHeightUpper() : params_.getCarHeightLower() ) / ( rp.first + turningBaselineDistance_ ) );
       const double signNullifier = ( fabs( sign( wheelOrientation_ ) )  > NUMERICAL_ERROR ? 1.0 : 0.0 );
-      const double signOfAngle = 1. *sy * signNullifier * sign( sx * params_.getCarWidth() / 2. + sign( wheelOrientation_ ) * turningBaselineDistance_ );
+      const double signOfAngle = 1. *sy * signNullifier * sign( rp.first + sign( wheelOrientation_ ) * turningBaselineDistance_ );
       return signOfAngle * std::atan( wheelAngleTan ) / PI * 180.;
    }
 
