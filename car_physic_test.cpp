@@ -159,27 +159,34 @@ double sign( const double number ) {
 // Classes of world objects
 //-----------------------------------------------------------------------
 
-class Drawable {
+class Positioned {
 public:
-   Drawable( double x = 0., double y = 0. ) : x_( x ), y_( y ) {}
-   virtual ~Drawable() {}
-   virtual void drawGL() const = 0;
-   virtual void move( int passed_time_in_ms ) const = 0;
-   virtual bool hasAttribute( const std::string& attribute, double x, double y ) const = 0;
+   Positioned( double x = 0., double y = 0. ) : x_( x ), y_( y ) {}
+   virtual ~Positioned() {}
+
    void setX( double x ) { x_ = x; }
    void setY( double y ) { y_ = y; }
    double getX() const { return x_;  }
    double getY() const { return y_;  }
+   virtual void move( int passed_time_in_ms ) const = 0;
+   virtual bool hasAttribute( const std::string& attribute, double x, double y ) const = 0;
 
 protected:
    mutable double x_;
    mutable double y_;
 };
 
-class AsphaltRectangle : public Drawable {
+class Drawable {
+public:
+   Drawable() {}
+   virtual ~Drawable() {}
+   virtual void drawGL() const = 0;
+};
+
+class AsphaltRectangle : public Drawable, public Positioned {
 public:
    AsphaltRectangle( double x = 0., double y = 0., double width = 300., double height = 1000. )
-     : Drawable( x, y ), width_( width ), height_( height ), horizontal_( height > width )  {}
+     : Positioned( x, y ), width_( width ), height_( height ), horizontal_( height > width )  {}
 
    virtual void drawGL() const override {
       glColor3fv( GRAY_RGB );
@@ -213,35 +220,47 @@ protected:
    bool horizontal_;
 };
 
-class DrawableContainer : public Drawable, public std::vector< const Drawable* > {
+template <class T>
+class Container : public std::vector< const T* > {
+public:
+   void addChild( const T& child ) { container_.push_back( &child ); }
+   const std::vector< const T* >& getChildren() const { return container_; } 
+
+private:
+   std::vector< const T* > container_;
+};
+
+class DrawableContainer : public Drawable, public Container<Drawable> {
 public:
    virtual ~DrawableContainer() {}
-   void addChild( const Drawable& child ) { push_back( &child ); }
    virtual void drawGL() const override {
-      for ( const auto& elem: static_cast< std::vector< const Drawable* > >( *this ) ) {
+      for ( const auto& elem: this->getChildren() ) {
          elem->drawGL();
       }
    }
+};
+
+class PositionedContainer : public Positioned, public Container<Positioned> {
+public:
    virtual void move( int passed_time_in_ms ) const override {
-      for ( const auto& elem: static_cast< std::vector< const Drawable* > >( *this ) ) {
+      for ( const auto& elem: this->getChildren() ) {
          elem->move( passed_time_in_ms );
       }
    }
    virtual bool hasAttribute( const std::string& attribute, double x, double y ) const override {
-      for ( const auto& elem: static_cast< std::vector< const Drawable* > >( *this ) ) {
+      for ( const auto& elem: this->getChildren() ) {
          if ( elem->hasAttribute( attribute, x, y ) ) {
             return true;
          }
       }
       return false;
    }
-
 };
 
-class Car : public Drawable {
+class Car : public Drawable, public Positioned {
 public:
-   Car( float x, float y, const DrawableContainer& world )
-    : params_(), Drawable( x, y ), speed_( 0. ), drifting_( 0. ), angleOfCarOrientation_( 0. ), wheelOrientation_( 0. ),
+   Car( float x, float y, const PositionedContainer& world )
+    : Positioned( x, y ), params_(),  speed_( 0. ), drifting_( 0. ), angleOfCarOrientation_( 0. ), wheelOrientation_( 0. ),
       actionTurning_( 0 ), actionAccelerating_( 0 ), turningBaselineDistance_( 0. ), turningRadius_( 0. ) ,
       world_( world ) {}
 
@@ -438,7 +457,7 @@ private:
    mutable double turningBaselineDistance_;
    mutable double turningRadius_;
 
-   const DrawableContainer& world_;
+   const PositionedContainer& world_;
 };
 
 //-----------------------------------------------------------------------
@@ -446,8 +465,9 @@ private:
 //-----------------------------------------------------------------------
 static int Old_t = 0;
 
-static DrawableContainer World;
+static PositionedContainer World;
 static Car myCar( 200., 200., World );
+static DrawableContainer View;
 static double GlobalCenterX = 0.;
 static double GlobalCenterY = 0.;
 
@@ -476,7 +496,7 @@ void animate(int passed_time_in_ms, GLfloat* diamColor, GLfloat* rectColor) {
    World.move( passed_time_in_ms );
    glPushMatrix();
    glTranslatef( -GlobalCenterX + ScreenWidth / 2, -GlobalCenterY + ScreenHeight / 2, 0.0f);
-   World.drawGL();
+   View.drawGL();
    glPopMatrix();
 }
 
@@ -584,6 +604,12 @@ int main(int argc, char** argv)
    World.addChild( b3 );
    World.addChild( b4 );
    World.addChild( myCar );
+
+   View.addChild( b1 );
+   View.addChild( b2 );
+   View.addChild( b3 );
+   View.addChild( b4 );
+   View.addChild( myCar );
 
    glutInit(&argc, argv);
    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
