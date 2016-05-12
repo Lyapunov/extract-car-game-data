@@ -257,69 +257,12 @@ public:
    }
 };
 
-class Car : public Drawable, public Positioned {
+class CarPhysics : public Positioned {
 public:
-   Car( float x, float y, const PositionedContainer& world )
+   CarPhysics( double x, double y, const PositionedContainer& world )
     : Positioned( x, y ), params_(),  speed_( 0. ), drifting_( 0. ), angleOfCarOrientation_( 0. ), wheelOrientation_( 0. ),
       actionTurning_( 0 ), actionAccelerating_( 0 ), turningBaselineDistance_( 0. ), turningRadius_( 0. ) ,
       world_( world ) {}
-
-   virtual void drawGL() const override {
-      glPushMatrix();
-      glTranslatef(x_, y_, 0.0f);
-      glRotatef(angleOfCarOrientation_, 0.0, 0.0, 1.0);
-      glTranslatef(0, params_.getDistanceBetweenCenterAndTurningAxle(), 0.0f);
-
-      // debug info
-      glColor3fv(YELLOW_RGB);
-      if ( fabs( wheelOrientation_ ) > 1. ) {
-         DrawCircle( -sign( wheelOrientation_ ) * turningBaselineDistance_, -params_.getCarHeight() / 2. + params_.getCarHeightLower(), turningRadius_, 200 );
-      }
-
-      // car visualization
-      glColor3fv(BLUE_RGB);
-      const float w2 = params_.getCarWidth() / 2.;
-      const float h2 = params_.getCarHeight() / 2.;
-      glRectf(- w2, - h2, + w2, + h2);
-      glColor3fv(RED_RGB);
-      glRectf(- w2, + h2 - h2 / 4., + w2 , + h2 );
-      glColor3fv(BLACK_RGB);
-      for ( int sx = -1; sx <= 1; sx += 2 ) {
-         for ( int sy = -1; sy <= 1; sy += 2 ) {
-            const std::pair<double, double> rp = wheelRelativePosition( sx, sy );
-            const double ra = wheelAngle( sx, sy );
-
-            glPushMatrix();
-            glTranslatef( rp.first, rp.second, 0.0f);
-            glRotatef( ra, 0.0, 0.0, 1.0 );
-            glRectf( - w2 /4., - h2 / 4. , + w2 / 4.,  + h2 / 4. );
-            glPopMatrix();
-         }
-      }
-      // debug info
-      glColor3fv(YELLOW_RGB);
-      if ( fabs( wheelOrientation_ ) > 1. ) {
-         glBegin(GL_LINES);
-         glVertex2f( 0, -h2 + params_.getCarHeightLower() );
-         glVertex2f( -sign( wheelOrientation_ ) * turningBaselineDistance_, -h2 + params_.getCarHeightLower() );
-         glEnd();
-      }
-      glColor3fv(MAGENTA_RGB);
-      if ( fabs( speed_ ) > 1. ) {
-         glBegin(GL_LINES);
-         glVertex2f( 0, -h2 + params_.getCarHeightLower() );
-         glVertex2f( 0, -h2 + params_.getCarHeightLower() + speed_ );
-         glEnd();
-      }
-
-      glPopMatrix();
-      for ( int sx = -1; sx <= 1; sx += 1 ) {
-         for ( int sy = -1; sy <= 1; sy += 1 ) {
-            std::pair<double, double> pmi = wheelPosition( sx, sy );
-            glRectf( pmi.first - 1., pmi.second - 1. , pmi.first + 1.,  pmi.second + 1. );
-         }
-      }
-   }
 
    void stopTurning() const { actionTurning_ =  0; }
    void turnLeft()    const { actionTurning_ = +1; }
@@ -443,6 +386,14 @@ public:
          move_in_a_millisecond();
       }
    }
+
+   const CarPhysicalParameters& getParams() const { return params_; }
+   double getSpeed() const { return speed_; }
+   double getAngleOfCarOrientation() const { return angleOfCarOrientation_; }
+   double getWheelOrientation() const { return wheelOrientation_; }
+   double getTurningBaselineDistance() const { return turningBaselineDistance_; }
+   double getTurningRadius() const { return turningRadius_; }
+
 private:
    const CarPhysicalParameters params_;
 
@@ -458,6 +409,69 @@ private:
    mutable double turningRadius_;
 
    const PositionedContainer& world_;
+};
+
+class Car: public CarPhysics, public Drawable {
+public:
+   Car( double x, double y, const PositionedContainer& world )
+    : CarPhysics( x, y, world ) {}
+
+   virtual void drawGL() const override {
+      glPushMatrix();
+      glTranslatef(this->getX(), this->getY(), 0.0f);
+      glRotatef( this->getAngleOfCarOrientation(), 0.0, 0.0, 1.0);
+      glTranslatef(0, this->getParams().getDistanceBetweenCenterAndTurningAxle(), 0.0f);
+
+      // debug info
+      glColor3fv(YELLOW_RGB);
+      if ( fabs( this->getWheelOrientation() ) > 1. ) {
+         DrawCircle( -sign( this->getWheelOrientation() ) * this->getTurningBaselineDistance(), -this->getParams().getCarHeight() / 2. + this->getParams().getCarHeightLower(), this->getTurningRadius(), 200 );
+      }
+
+      // car visualization
+      glColor3fv(BLUE_RGB);
+      const float w2 = this->getParams().getCarWidth() / 2.;
+      const float h2 = this->getParams().getCarHeight() / 2.;
+      glRectf(- w2, - h2, + w2, + h2);
+      glColor3fv(RED_RGB);
+      glRectf(- w2, + h2 - h2 / 4., + w2 , + h2 );
+      glColor3fv(BLACK_RGB);
+      for ( int sx = -1; sx <= 1; sx += 2 ) {
+         for ( int sy = -1; sy <= 1; sy += 2 ) {
+            const std::pair<double, double> rp = this->wheelRelativePosition( sx, sy );
+            const double ra = this->wheelAngle( sx, sy );
+
+            glPushMatrix();
+            glTranslatef( rp.first, rp.second, 0.0f);
+            glRotatef( ra, 0.0, 0.0, 1.0 );
+            glRectf( - w2 /4., - h2 / 4. , + w2 / 4.,  + h2 / 4. );
+            glPopMatrix();
+         }
+      }
+      // debug info
+      glColor3fv(YELLOW_RGB);
+      if ( fabs( this->getWheelOrientation() ) > 1. ) {
+         glBegin(GL_LINES);
+         glVertex2f( 0, -h2 + this->getParams().getCarHeightLower() );
+         glVertex2f( -sign( this->getWheelOrientation() ) * this->getTurningBaselineDistance(), -h2 + this->getParams().getCarHeightLower() );
+         glEnd();
+      }
+      glColor3fv(MAGENTA_RGB);
+      if ( fabs( this->getSpeed() ) > 1. ) {
+         glBegin(GL_LINES);
+         glVertex2f( 0, -h2 + this->getParams().getCarHeightLower() );
+         glVertex2f( 0, -h2 + this->getParams().getCarHeightLower() + this->getSpeed() );
+         glEnd();
+      }
+
+      glPopMatrix();
+      for ( int sx = -1; sx <= 1; sx += 1 ) {
+         for ( int sy = -1; sy <= 1; sy += 1 ) {
+            std::pair<double, double> pmi = wheelPosition( sx, sy );
+            glRectf( pmi.first - 1., pmi.second - 1. , pmi.first + 1.,  pmi.second + 1. );
+         }
+      }
+   }
 };
 
 //-----------------------------------------------------------------------
