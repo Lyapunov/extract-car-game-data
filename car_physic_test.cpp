@@ -268,11 +268,12 @@ public:
       for ( int sx = -1; sx <= 1; sx += 2 ) {
          for ( int sy = -1; sy <= 1; sy += 2 ) {
             glPushMatrix();
-            const double mirroring = sign( wheelOrientation_ ) < 0 ? -1.0 : 1.0 ;
-            glTranslatef( mirroring * sx * w2, sy * h2, 0.0f);
-            const double myTan = ( sy == 1 ? params_.getCarHeightUpper() : params_.getCarHeightLower() ) / ( sx * w2 + turningBaselineDistance_ );
-            const double wheelAngle = sign( wheelOrientation_ ) * std::atan( myTan ) / PI * 180.;
-            glRotatef( 1. *sy * wheelAngle, 0.0, 0.0, 1.0);
+            glTranslatef( sx * w2, sy * h2, 0.0f);
+            const double myTan = fabs( ( sy == 1 ? params_.getCarHeightUpper() : params_.getCarHeightLower() ) / ( sx * w2 + turningBaselineDistance_ ) );
+            const double angleNullifier = ( fabs( sign( wheelOrientation_ ) )  > NUMERICAL_ERROR ? 1.0 : 0.0 );
+            const double signOfAngle = 1. *sy * angleNullifier * sign( sx * w2 + sign( wheelOrientation_ ) * turningBaselineDistance_ );
+            const double wheelAngle = signOfAngle * std::atan( myTan ) / PI * 180.;
+            glRotatef( wheelAngle, 0.0, 0.0, 1.0);
             glRectf( - w2 /4., - h2 / 4. , + w2 / 4.,  + h2 / 4. );
             glPopMatrix();
          }
