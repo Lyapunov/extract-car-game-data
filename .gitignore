@@ -5,3 +5,4 @@ car_physic_test
 extract_car_game_background_and_car_trajectory
 *.png
 *.avi
+*.gch
