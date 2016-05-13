@@ -17,11 +17,13 @@
 
 #include <iostream>
 #include <cmath>
-#include <vector>
 
 #include <GL/glut.h>               // GLUT
 #include <GL/glu.h>                // GLU
 #include <GL/gl.h>                 // OpenGL
+
+#include "Drawable.h"
+#include "Positioned.h"
 
 // From:
 // http://slabode.exofire.net/circle_draw.shtml
@@ -159,30 +161,6 @@ double sign( const double number ) {
 // Classes of world objects
 //-----------------------------------------------------------------------
 
-class Positioned {
-public:
-   Positioned( double x = 0., double y = 0. ) : x_( x ), y_( y ) {}
-   virtual ~Positioned() {}
-
-   void setX( double x ) { x_ = x; }
-   void setY( double y ) { y_ = y; }
-   double getX() const { return x_;  }
-   double getY() const { return y_;  }
-   virtual void move( int passed_time_in_ms ) const = 0;
-   virtual bool hasAttribute( const std::string& attribute, double x, double y ) const = 0;
-
-protected:
-   mutable double x_;
-   mutable double y_;
-};
-
-class Drawable {
-public:
-   Drawable() {}
-   virtual ~Drawable() {}
-   virtual void drawGL() const = 0;
-};
-
 class AsphaltRectangle : public Drawable, public Positioned {
 public:
    AsphaltRectangle( double x = 0., double y = 0., double width = 300., double height = 1000. )
@@ -220,43 +198,6 @@ protected:
    bool horizontal_;
 };
 
-template <class T>
-class Container : public std::vector< const T* > {
-public:
-   void addChild( const T& child ) { container_.push_back( &child ); }
-   const std::vector< const T* >& getChildren() const { return container_; } 
-
-private:
-   std::vector< const T* > container_;
-};
-
-class DrawableContainer : public Drawable, public Container<Drawable> {
-public:
-   virtual ~DrawableContainer() {}
-   virtual void drawGL() const override {
-      for ( const auto& elem: this->getChildren() ) {
-         elem->drawGL();
-      }
-   }
-};
-
-class PositionedContainer : public Positioned, public Container<Positioned> {
-public:
-   virtual void move( int passed_time_in_ms ) const override {
-      for ( const auto& elem: this->getChildren() ) {
-         elem->move( passed_time_in_ms );
-      }
-   }
-   virtual bool hasAttribute( const std::string& attribute, double x, double y ) const override {
-      for ( const auto& elem: this->getChildren() ) {
-         if ( elem->hasAttribute( attribute, x, y ) ) {
-            return true;
-         }
-      }
-      return false;
-   }
-};
-
 class CarPhysics : public Positioned {
 public:
    CarPhysics( double x, double y, const PositionedContainer& world )
@@ -284,7 +225,6 @@ public:
       }
       return retval;
    }
-
 
    std::pair<double, double> wheelRelativePosition( int sx, int sy ) const {
       return std::pair<double, double>( sx * params_.getCarWidth() / 2., sy * params_.getCarHeight() / 2. );
