@@ -335,7 +335,7 @@ namespace {
                    bool validAngle = false;
 
                    // preserving important data
-                   if ( angleVect_.x == 0. && angleVect_.y == 0. || angleVect_.x * cos( angle )  + angleVect_.y * sin( angle ) > 0.85 ) {
+                   if ( ( angleVect_.x == 0. && angleVect_.y == 0. ) || angleVect_.x * cos( angle )  + angleVect_.y * sin( angle ) > 0.85 ) {
                       angleVect_ = cv::Point2d( cos( angle ), sin( angle ) );
                       validAngle = true;
                    } else {
@@ -523,7 +523,7 @@ namespace {
 
                       int pointx = target.x + centroid.x;
                       int pointy = target.y + centroid.y;
-                      if ( 0 <= pointx && pointx < img.cols && 0 <= pointy < img.rows ) {
+                      if ( 0 <= pointx && pointx < img.cols && 0 <= pointy && pointy < img.rows ) {
                          if ( img.at<unsigned char>( pointy, pointx ) == 127 ) {
                             ++intersect;
                          }
@@ -571,21 +571,13 @@ namespace {
     
 
     int processShell(VideoCapture& capture, ImageProcessor& processor) {
-        int n = 0;
-        char filename[200];
         string window_name = processor.getTitle();
         namedWindow(window_name, CV_WINDOW_KEEPRATIO); //resizable window;
         Mat frame;
         Mat before;
         capture >> frame;
           
-        int sWidth = 200;
-        int sHeight = 200;
-        int sX = 90;
-        int sY = 0;
-        int dom = 15;
         int drop = 10;
-
         for (;;) {
             capture >> frame;
             if ( !processor.process( frame, drop > 0 ) ) {
@@ -682,7 +674,7 @@ int main(int ac, char** av) {
     std::vector<cv::Point2d> places;
     std::vector<double>    angle;
     cp.getResult( places, angle );
-    for ( int i = 0; i < places.size(); ++i ) {
+    for ( unsigned int i = 0; i < places.size(); ++i ) {
        std::cout << std::fixed << std::setprecision(5) << places[i].x << " " << places[i].y << " " << angle[i] << std::endl;
     }
 
