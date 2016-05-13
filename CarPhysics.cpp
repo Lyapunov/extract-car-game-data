@@ -19,7 +19,6 @@ namespace {
    }
 }
 
-
 double 
 CarPhysicalParameters::getTurningBaseline( const double alpha ) const {
    return ( carWidth_ + calculatingMagicNumberB( alpha ) + sqrt( calculatingMagicNumberB( alpha ) * calculatingMagicNumberB( alpha ) + 4 * carHeightMagicProduct_ ) ) / 2.; 
@@ -31,7 +30,7 @@ CarPhysicalParameters::calculatingMagicNumberB( const double alpha ) const {
 }
 
 int
-CarPhysics::numberOfWheelsOnAsphalt() const {
+CarPhysics::wheelsOnAsphalt() const {
    int retval = 0;
    for ( int sx = -1; sx <= 1; sx += 2 ) {
       for ( int sy = -1; sy <= 1; sy += 2 ) {
@@ -123,7 +122,7 @@ CarPhysics::move_in_a_millisecond() const {
    correctingWheelOrientation();
 
    // maximal speed correction
-   const double currentMaximalSpeed = params_.getMaximalSpeed() * ( numberOfWheelsOnAsphalt() > 2 ? 1.0 : 0.35 );
+   const double currentMaximalSpeed = params_.getMaximalSpeed() * ( wheelsOnAsphalt() > 2 ? 1.0 : 0.35 );
    
    double acceleration = ( static_cast<double>( actionAccelerating_ ) * params_.getAcceleration()
                          - ( 1. - static_cast<double>( actionAccelerating_ ) ) * ( params_.getAcceleration() + params_.getDecelerationMinusAcceleration() ) ) * DELTA_T ;

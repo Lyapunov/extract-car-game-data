@@ -82,34 +82,34 @@ public:
       actionTurning_( 0 ), actionAccelerating_( 0 ), turningBaselineDistance_( 0. ), turningRadius_( 0. ) ,
       world_( world ) {}
 
+   virtual bool hasAttribute( const std::string& attribute, double x, double y ) const override { return false; }
+   virtual void move( int passed_time_in_ms ) const override;
+   void move_in_a_millisecond() const; // Moving in one ms
+
    void stopTurning() const { actionTurning_ =  0; }
    void turnLeft()    const { actionTurning_ = +1; }
    void turnRight()   const { actionTurning_ = -1; }
    void stopAccelerating() const  { actionAccelerating_ = +0; }
    void accelerate() const  { actionAccelerating_ = +1; }
 
-   virtual bool hasAttribute( const std::string& attribute, double x, double y ) const override { return false; }
-
-   int                       numberOfWheelsOnAsphalt() const; 
    double                    wheelAngle( int sx, int sy ) const;
    std::pair<double, double> wheelRelativePosition( int sx, int sy ) const;
    std::pair<double, double> wheelPosition( int sx, int sy ) const;
    std::pair<double, double> carCenterPosition( int sx, int sy ) const { return wheelPosition( sx, sy ); }
 
-   void correctingWheelOrientation() const;
-   void calculateTurningRadiusAndBaseline() const;
-
-   void move_in_a_millisecond() const; // Moving in one ms
-   virtual void move( int passed_time_in_ms ) const override;
-
-   const CarPhysicalParameters& getParams() const { return params_; }
    double getSpeed() const { return speed_; }
    double getAngleOfCarOrientation() const { return angleOfCarOrientation_; }
    double getWheelOrientation() const { return wheelOrientation_; }
    double getTurningBaselineDistance() const { return turningBaselineDistance_; }
    double getTurningRadius() const { return turningRadius_; }
 
+   const CarPhysicalParameters& getParams() const { return params_; } // good for drawing
+
 private:
+   int  wheelsOnAsphalt() const; // Check wheter the car is out of the race track
+   void correctingWheelOrientation() const;
+   void calculateTurningRadiusAndBaseline() const;
+
    const CarPhysicalParameters params_;
 
    mutable double speed_;
