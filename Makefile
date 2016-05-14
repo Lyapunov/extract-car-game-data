@@ -6,7 +6,7 @@ CFLAGS=-Wall -std=c++11 -c
 LFLAGS=-Wall -std=c++11
 CVFLAGS=$(shell pkg-config --cflags --libs opencv)
 GLFLAGS=-lGL -lglut
-CAR_TEST_OBJS = CarPhysics.o Drawable.o Positioned.o $(TARGET_CAR_TEST).o
+CAR_TEST_OBJS = sign.o CarPhysics.o Drawable.o Positioned.o $(TARGET_CAR_TEST).o
 
 TARGET_EXTRACT=extract_car_game_background_and_car_trajectory
 TARGET_CAR_TEST=car_physic_test
@@ -25,6 +25,9 @@ Positioned.o : Positioned.h Positioned.cpp
 
 CarPhysics.o : CarPhysics.h CarPhysics.cpp
 	$(CC) CarPhysics.cpp $(CFLAGS) 
+
+sign.o : sign.h sign.cpp
+	$(CC) sign.cpp $(CFLAGS) 
 
 $(TARGET_CAR_TEST).o : $(TARGET_CAR_TEST).cpp
 	$(CC) $(TARGET_CAR_TEST).cpp $(CFLAGS) 

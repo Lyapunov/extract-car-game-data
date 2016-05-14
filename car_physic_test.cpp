@@ -22,6 +22,7 @@
 #include <GL/glu.h>                // GLU
 #include <GL/gl.h>                 // OpenGL
 
+#include "sign.h"
 #include "Drawable.h"
 #include "Positioned.h"
 #include "CarPhysics.h"
@@ -64,17 +65,6 @@ GLfloat YELLOW_RGB[] = {1.0, 1.0, 0.0};
 GLfloat MAGENTA_RGB[] = {1.0, 0.0, 1.0};
 GLfloat GRAY_RGB[] = {0.25, 0.25, 0.25};
 GLfloat WHITE_RGB[] = {1., 1., 1.};
-
-static const double NUMERICAL_ERROR = 1e-10;
-double sign( const double number ) {
-   if ( number > NUMERICAL_ERROR ) {
-      return 1.;
-   }
-   if ( number < -NUMERICAL_ERROR ) {
-      return -1.;
-   }
-   return 0.;
-}
 
 //-----------------------------------------------------------------------
 // Classes of world objects

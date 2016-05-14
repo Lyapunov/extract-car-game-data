@@ -1,23 +1,11 @@
-#include "CarPhysics.h"
-
 #include <cmath>
 #include <utility>
 
-static const double PI = 3.141592653589793;
-static const double NUMERICAL_ERROR = 1e-10;
-static const double DELTA_T = 0.001;
+#include "CarPhysics.h"
+#include "sign.h"
 
-namespace {
-   double sign( const double number ) {
-      if ( number > NUMERICAL_ERROR ) {
-         return 1.;
-      }
-      if ( number < -NUMERICAL_ERROR ) {
-         return -1.;
-      }
-      return 0.;
-   }
-}
+static const double PI = 3.141592653589793;
+static const double DELTA_T = 0.001;
 
 double 
 CarPhysicalParameters::getTurningBaseline( const double alpha ) const {
@@ -69,7 +57,7 @@ CarPhysics::wheelAngle( int sx, int sy ) const {
    const std::pair<double, double> rp = wheelRelativePosition( sx, sy ); 
 
    const double wheelAngleTan = fabs( ( sy == 1 ? params_.getCarHeightUpper() : params_.getCarHeightLower() ) / ( rp.first + turningBaselineDistance_ ) );
-   const double signNullifier = ( fabs( sign( wheelOrientation_ ) )  > NUMERICAL_ERROR ? 1.0 : 0.0 );
+   const double signNullifier = fabs( sign( wheelOrientation_ ) );
    const double signOfAngle = 1. *sy * signNullifier * sign( rp.first + sign( wheelOrientation_ ) * turningBaselineDistance_ );
    return signOfAngle * std::atan( wheelAngleTan ) / PI * 180.;
 }
