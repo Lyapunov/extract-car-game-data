@@ -13,7 +13,7 @@ public:
                            double maximalTurningSpeed = 150.,
                            double acceleration = 40.,
                            double decelerationMinusAcceleration = 20.,
-                           double relativeDistanceBetweenCenterAndTurningAxle =0.5,
+                           double relativeDistanceBetweenCenterAndTurningAxle = 0.5,
                            double turningConstAngle = 0.,
                            double turningDeceleration = 20. )
     : carWidth_(carWidth),
