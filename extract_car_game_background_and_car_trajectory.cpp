@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <sstream>
 #include <iomanip>
+#include <set>
 
 using namespace cv;
 using namespace std;
@@ -302,6 +303,25 @@ namespace {
                 cv::bitwise_or( binaryMaskMat, sbpResult_, binaryMaskMat );
                 cv::bitwise_not( binaryMaskMat, binaryMaskMat );
 
+                // cleaning the result
+                std::set<unsigned char> distroBackground;
+                std::set<unsigned char> distroForeground;
+                createColorDistribution( hsvFrame, binaryMaskMat, 0  , distroBackground );
+                createColorDistribution( hsvFrame, binaryMaskMat, 255, distroForeground );
+                std::cout << "=== FG ";
+                for ( const auto& elem : distroForeground ) {
+                   std::cout << elem << " ";
+                }
+                std::cout << std::endl;
+                std::cout << "=== BG ";
+                for ( const auto& elem : distroBackground ) {
+                   std::cout << elem << " ";
+                }
+                std::cout << std::endl;
+                cv::Mat binaryMaskMat2(frame.size(), CV_8U);
+                createColorMask( binaryMaskMat2, hsvFrame, distroBackground );
+                imshow( "debug", binaryMaskMat2 );
+
                 // detecting our blob
                 cv::Point elem = findNearestBlobInBinaryImage( binaryMaskMat, centroidDistorted_ );
 
@@ -551,6 +571,29 @@ namespace {
              }
 
              return len;
+          }
+
+          void createColorDistribution( const Mat& img, const Mat& mask, unsigned char maskValue, std::set<unsigned char>& distribution ) const {
+             for(int y=0;y<img.rows;y++) {
+                for(int x=0;x<img.cols;x++) {
+                   if ( mask.at<unsigned char>(y, x) == maskValue ) {
+                      const unsigned char& pixel = img.at<unsigned char>( y, x );
+                      distribution.insert( pixel );
+                   }
+                }
+             }
+          }
+
+          void createColorMask( Mat& mask, const Mat& img, std::set<unsigned char>& background ) const {
+             for(int y=0;y<img.rows;y++) {
+                for(int x=0;x<img.cols;x++) {
+                   const unsigned char& pixel = img.at<unsigned char>( y, x );
+                   if ( !background.count( pixel ) ) {
+                      unsigned char& maskPixel = mask.at<unsigned char>( y, x );
+                      maskPixel = 255;
+                   }
+                }
+             }
           }
 
           const std::vector<Vec2f>& trajectory_;
