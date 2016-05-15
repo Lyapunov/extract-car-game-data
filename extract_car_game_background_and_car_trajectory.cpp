@@ -300,30 +300,23 @@ namespace {
                 cv::Mat binaryMaskMat(frame.size(), CV_8U);
                 cv::threshold(diffChannels[0], binaryMaskMat, 20, 255, cv::THRESH_BINARY);
                 cv::bitwise_not( binaryMaskMat, binaryMaskMat );
+
+                // better approach for map
+                std::vector<cv::Mat> hsvFrameChannels(3);
+                split(hsvFrame, hsvFrameChannels);
+                std::set<unsigned char> distroBackground;
+                createColorDistribution( hsvFrameChannels[0], binaryMaskMat, 255, distroBackground );
+                cv::Mat binaryMaskMatCarColor(frame.size(), CV_8U);
+                createColorMask( binaryMaskMatCarColor, hsvFrameChannels[0], distroBackground );
+
                 cv::bitwise_or( binaryMaskMat, sbpResult_, binaryMaskMat );
                 cv::bitwise_not( binaryMaskMat, binaryMaskMat );
 
-                // cleaning the result
-                std::set<unsigned char> distroBackground;
-                std::set<unsigned char> distroForeground;
-                createColorDistribution( hsvFrame, binaryMaskMat, 0  , distroBackground );
-                createColorDistribution( hsvFrame, binaryMaskMat, 255, distroForeground );
-                std::cout << "=== FG ";
-                for ( const auto& elem : distroForeground ) {
-                   std::cout << elem << " ";
-                }
-                std::cout << std::endl;
-                std::cout << "=== BG ";
-                for ( const auto& elem : distroBackground ) {
-                   std::cout << elem << " ";
-                }
-                std::cout << std::endl;
-                cv::Mat binaryMaskMat2(frame.size(), CV_8U);
-                createColorMask( binaryMaskMat2, hsvFrame, distroBackground );
-                imshow( "debug", binaryMaskMat2 );
+                cv::bitwise_or( binaryMaskMatCarColor, sbpResult_, binaryMaskMatCarColor );
+                cv::bitwise_not( binaryMaskMatCarColor, binaryMaskMatCarColor );
 
                 // detecting our blob
-                cv::Point elem = findNearestBlobInBinaryImage( binaryMaskMat, centroidDistorted_ );
+                cv::Point elem = findNearestBlobInBinaryImage( binaryMaskMatCarColor, centroidDistorted_ );
 
                 // distortion removal, basic version, TODO: improve
                 const double distortion = static_cast<double>( binaryMaskMat.cols ) * 3. / 4. / static_cast<double>( binaryMaskMat.rows );
@@ -588,10 +581,8 @@ namespace {
              for(int y=0;y<img.rows;y++) {
                 for(int x=0;x<img.cols;x++) {
                    const unsigned char& pixel = img.at<unsigned char>( y, x );
-                   if ( !background.count( pixel ) ) {
-                      unsigned char& maskPixel = mask.at<unsigned char>( y, x );
-                      maskPixel = 255;
-                   }
+                   unsigned char& maskPixel = mask.at<unsigned char>( y, x );
+                   maskPixel = !background.count( pixel ) ? 0 : 255;
                 }
              }
           }
