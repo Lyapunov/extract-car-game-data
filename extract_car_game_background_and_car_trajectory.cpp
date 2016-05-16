@@ -306,17 +306,22 @@ namespace {
                 split(hsvFrame, hsvFrameChannels);
                 std::set<unsigned char> distroBackground;
                 createColorDistribution( hsvFrameChannels[0], binaryMaskMat, 255, distroBackground );
-                cv::Mat binaryMaskMatCarColor(frame.size(), CV_8U);
-                createColorMask( binaryMaskMatCarColor, hsvFrameChannels[0], distroBackground );
+                cv::Mat binaryMaskMatCarColor(frame.size(), CV_8U, cvScalar(0.));
 
                 cv::bitwise_or( binaryMaskMat, sbpResult_, binaryMaskMat );
                 cv::bitwise_not( binaryMaskMat, binaryMaskMat );
 
-                cv::bitwise_or( binaryMaskMatCarColor, sbpResult_, binaryMaskMatCarColor );
-                cv::bitwise_not( binaryMaskMatCarColor, binaryMaskMatCarColor );
+                cv::Point elem;
+                if ( createColorMask( binaryMaskMatCarColor, hsvFrameChannels[0], distroBackground ) ) {
+                   cv::bitwise_or( binaryMaskMatCarColor, sbpResult_, binaryMaskMatCarColor );
+                   cv::bitwise_not( binaryMaskMatCarColor, binaryMaskMatCarColor );
 
-                // detecting our blob
-                cv::Point elem = findNearestBlobInBinaryImage( binaryMaskMatCarColor, centroidDistorted_ );
+                   // detecting our blob
+                   elem = findNearestBlobInBinaryImage( binaryMaskMatCarColor, centroidDistorted_ );
+                } else {
+                   elem = findNearestBlobInBinaryImage( binaryMaskMat, centroidDistorted_ );
+                }
+                imshow( "debug", binaryMaskMatCarColor );
 
                 // distortion removal, basic version, TODO: improve
                 const double distortion = static_cast<double>( binaryMaskMat.cols ) * 3. / 4. / static_cast<double>( binaryMaskMat.rows );
@@ -577,14 +582,19 @@ namespace {
              }
           }
 
-          void createColorMask( Mat& mask, const Mat& img, std::set<unsigned char>& background ) const {
+          bool createColorMask( Mat& mask, const Mat& img, std::set<unsigned char>& background ) const {
+             bool success = false;
              for(int y=0;y<img.rows;y++) {
                 for(int x=0;x<img.cols;x++) {
                    const unsigned char& pixel = img.at<unsigned char>( y, x );
                    unsigned char& maskPixel = mask.at<unsigned char>( y, x );
-                   maskPixel = !background.count( pixel ) ? 0 : 255;
+                   if ( background.count( pixel ) ) {
+                      maskPixel = 255;
+                      success = true;
+                   }
                 }
              }
+             return success;
           }
 
           const std::vector<Vec2f>& trajectory_;
