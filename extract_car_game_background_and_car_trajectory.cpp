@@ -96,7 +96,7 @@ namespace {
        public:
           DynamicBackgroundProcessor( std::vector<Vec2f>& trajectory,
                                       const cv::Mat* pStaticBackground = 0,
-                                      unsigned char maxNumOfSamplesInAverageImage = MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE, int bigMapSize = 1000, short int maxstep = 5, bool mergePreviousDiff = MERGE_PREVIOUS_DIFF )
+                                      unsigned char maxNumOfSamplesInAverageImage = MAX_NUM_OF_SAMPLES_IN_AVERAGE_IMAGE, int bigMapSize = 1000, short int maxstep = 10, bool mergePreviousDiff = MERGE_PREVIOUS_DIFF )
            : trajectory_( trajectory ), pStaticBackground_( pStaticBackground ), pPreviousMask_( nullptr ),
              maxNumOfSamplesInAverageImage_( maxNumOfSamplesInAverageImage ), bigMapRadius_( bigMapSize ), maxstep_( maxstep ), mergePreviousDiff_( mergePreviousDiff )
           {
@@ -184,13 +184,11 @@ namespace {
   
              long minimum = 255 * afterGrayscale.cols * afterGrayscale.rows;
   
-             cv::Mat diffStored(beforeGrayscaleMasked.size(), beforeGrayscaleMasked.type()); // debug
+             cv::Mat diffStored(beforeGrayscaleMasked.size(), beforeGrayscaleMasked.type(), cvScalar(0.)); // debug
   
              // The claim is that if we apply the correct shift, then the diff image will contain a very few points
              for ( int ix = -maxstep_; ix <= maxstep_; ++ix ) {
                 for ( int iy = -maxstep_; iy <= maxstep_; ++iy ) {
-                   cv::Mat afterGrayscaleMaskedShifted = cv::Mat::zeros(afterGrayscaleMasked.size(), afterGrayscaleMasked.type());
-  
                    // had no better idea
                    int px = ix > 0 ?  ix : 0;
                    int nx = ix < 0 ? -ix : 0;
@@ -198,17 +196,22 @@ namespace {
                    int ny = iy < 0 ? -iy : 0;
                    int sizex = afterGrayscaleMasked.cols - ( px > nx ? px : nx );
                    int sizey = afterGrayscaleMasked.rows - ( py > ny ? py : ny );
+                   const cv::Size diffSize( sizex, sizey );
+ 
+                   cv::Mat afterGrayscaleMaskedShifted = cv::Mat::zeros(diffSize, afterGrayscaleMasked.type());
+                   afterGrayscaleMasked( cv::Rect(px, py, sizex, sizey) ).copyTo( afterGrayscaleMaskedShifted );
+
+                   cv::Mat beforeGrayscaleMaskedShifted = cv::Mat::zeros(diffSize, beforeGrayscaleMasked.type());
+                   beforeGrayscaleMasked( cv::Rect(nx, ny, sizex, sizey) ).copyTo( beforeGrayscaleMaskedShifted );
   
-                   afterGrayscaleMasked( cv::Rect(px, py, sizex, sizey) ).copyTo( afterGrayscaleMaskedShifted( cv::Rect( nx, ny, sizex, sizey ) ) );
-  
-                   cv::Mat diff(beforeGrayscaleMasked.size(), beforeGrayscaleMasked.type(), cvScalar(0.));
-                   cv::absdiff(beforeGrayscaleMasked, afterGrayscaleMaskedShifted, diff);
+                   cv::Mat diff(diffSize, beforeGrayscaleMasked.type(), cvScalar(0.));
+                   cv::absdiff(beforeGrayscaleMaskedShifted, afterGrayscaleMaskedShifted, diff);
                    long pixels = cv::sum( diff )[0];
                    if ( pixels < minimum ) {
                       rx = -ix; // sorry, I wrote the entire logic in the opposite way and I don't feel like to rewrite everything
                       ry = -iy;
                       minimum = pixels;
-                      diff.copyTo( diffStored );
+                      diff.copyTo( diffStored( cv::Rect(nx, ny, sizex, sizey) ) );
                    }
                 }
              }
