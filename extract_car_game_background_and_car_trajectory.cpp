@@ -206,7 +206,10 @@ namespace {
   
                    cv::Mat diff(diffSize, beforeGrayscaleMasked.type(), cvScalar(0.));
                    cv::absdiff(beforeGrayscaleMaskedShifted, afterGrayscaleMaskedShifted, diff);
-                   long pixels = cv::sum( diff )[0];
+                   cv::Mat diffBW( after.size(), CV_8U, cvScalar(0.) );
+                   cv::threshold( diff, diffBW, 0, 255, THRESH_BINARY );
+
+                   long pixels = cv::sum( diffBW )[0];
                    if ( pixels < minimum ) {
                       rx = -ix; // sorry, I wrote the entire logic in the opposite way and I don't feel like to rewrite everything
                       ry = -iy;
