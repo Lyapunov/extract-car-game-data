@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <sstream>
 #include <iomanip>
+#include <map>
 #include <set>
 
 using namespace cv;
@@ -274,8 +275,25 @@ namespace {
           CarProcessor( const std::vector<Vec2f>& trajectory,
                         const cv::Mat& background,
                         const cv::Mat& sbpResult)
-           : trajectory_( trajectory ), background_( background ), sbpResult_( sbpResult ), centroidDistorted_( sbpResult.cols / 2, sbpResult.rows / 2 ), centroid_( 0.0, 0.0 ), radius_( ( background.cols - 1 ) / 2 ), ax_( radius_ ), ay_( radius_ )
-          {}
+           : trajectory_( trajectory ), background_( background ), bdistro_(), sbpResult_( sbpResult ), centroidDistorted_( sbpResult.cols / 2, sbpResult.rows / 2 ), centroid_( 0.0, 0.0 ), radius_( ( background.cols - 1 ) / 2 ), ax_( radius_ ), ay_( radius_ )
+          {
+             init();
+          }
+
+          void init() {
+             // static background color distribution
+             for(int y=0;y<background_.rows;y++) {
+                for(int x=0;x<background_.cols;x++) {
+                   char r = background_.at<Vec3b>(y,x)[0] / 4;
+                   char g = background_.at<Vec3b>(y,x)[1] / 4;
+                   char b = background_.at<Vec3b>(y,x)[2] / 4;
+                   if ( r == 0 && g == 63 && b == 0 ) {
+                      continue;
+                   }
+                   bdistro_[ r ][ g ].insert( b );
+                }
+             }
+          }
 
           virtual bool process( const cv::Mat& frame, bool dropped ) override {
              short int dx = trajectory_[ index_ ][0];
@@ -577,6 +595,10 @@ namespace {
              return len;
           }
 
+          bool isBackgroundPixel( const Mat& img, int x, int y ) const {
+             return bdistro_[ img.at<Vec3b>(y,x)[0] / 4 ][ img.at<Vec3b>(y,x)[1] / 4 ].count( img.at<Vec3b>(y,x)[2] / 4 );
+          }
+
           void createColorDistribution( const Mat& img, const Mat& mask, unsigned char maskValue, std::set<unsigned char>& distribution ) const {
              for(int y=0;y<img.rows;y++) {
                 for(int x=0;x<img.cols;x++) {
@@ -605,6 +627,7 @@ namespace {
 
           const std::vector<Vec2f>& trajectory_;
           const cv::Mat& background_;
+          mutable std::map< char, std::map< char, std::set< char > > > bdistro_;
           const cv::Mat& sbpResult_;
           cv::Point2d centroidDistorted_;
           cv::Point2d centroid_;
