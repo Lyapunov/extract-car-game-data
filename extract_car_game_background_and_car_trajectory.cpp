@@ -336,7 +336,9 @@ namespace {
                 cv::bitwise_not( binaryMaskMat, binaryMaskMat );
 
                 cv::Point elem;
+                bool isOkColorBasedMask = false;
                 if ( createColorMask( binaryMaskMatCarColor, hsvFrameChannels[0], distroBackground ) ) {
+                   isOkColorBasedMask = true;
                    cv::bitwise_or( binaryMaskMatCarColor, sbpResult_, binaryMaskMatCarColor );
                    cv::bitwise_not( binaryMaskMatCarColor, binaryMaskMatCarColor );
 
@@ -353,6 +355,9 @@ namespace {
 
                 if ( elem != cv::Point( 0, 0 ) ) {
                    cv::floodFill( binaryMaskMat, elem, cvScalar(127.0) );  
+                   if ( isOkColorBasedMask ) {
+                      cv::floodFill( binaryMaskMatCarColor, elem, cvScalar(127.0) );  
+                   }
                    cv::Point2d centroidDistorted = calculateCentroid( binaryMaskMat );
 
                    // remove distortion
@@ -370,6 +375,8 @@ namespace {
                    if ( angleVect_.x == 0. && angleVect_.y == 0. ) {
                       helper = centroid - centroid_;
                    }
+
+                   // todo: improve calculateK if isOkColorBasedMask is true
                    const double kOfAngle = calculateK( binaryMaskMat, helper, rawAngle, signOfAngle, jOfAngle );
 
                    const double PI = 3.141592653589793;
@@ -466,14 +473,14 @@ namespace {
           }
 
 
-          cv::Point2d calculateCentroid( const cv::Mat& img ) {
+          cv::Point2d calculateCentroid( const cv::Mat& img, char centroColor = 127 ) {
              double sumx = 0.0;
              double sumy = 0.0;
              long num = 0;
 
              for ( int x = 0; x < img.cols; ++x ) {
                 for ( int y = 0; y < img.rows; ++y ) {
-                   if ( img.at<unsigned char>( y, x ) == 127 ) {
+                   if ( img.at<unsigned char>( y, x ) == centroColor ) {
                       sumx += x;
                       sumy += y;
                       ++num;
