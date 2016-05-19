@@ -377,7 +377,7 @@ namespace {
                    }
 
                    // todo: improve calculateK if isOkColorBasedMask is true
-                   const double kOfAngle = calculateK( binaryMaskMat, helper, rawAngle, signOfAngle, jOfAngle );
+                   const double kOfAngle = calculateK( isOkColorBasedMask ? binaryMaskMatCarColor : binaryMaskMat, helper, centroid, rawAngle, signOfAngle, jOfAngle );
 
                    const double PI = 3.141592653589793;
                    double angle = correctInterval( signOfAngle * rawAngle + PI / 2. * jOfAngle + PI * kOfAngle );
@@ -540,9 +540,30 @@ namespace {
              return maxJ;
           }
 
-          double calculateK( const cv::Mat& img, const cv::Point2d& helper, double angle, double signOfAngle, double jOfAngle ) {
+          double calculateK( const cv::Mat& img, const cv::Point2d& helper, const cv::Point2d& centroid, double angle, double signOfAngle, double jOfAngle ) {
              const double PI = 3.141592653589793;
              cv::Point2d dir ( cos( signOfAngle * angle + PI / 2. * jOfAngle), sin( signOfAngle * angle + PI / 2. * jOfAngle ) );
+             // TODO: improve this
+             int sum = 0;
+             for ( int x = 1; x < img.cols - 1; ++x ) {
+                for ( int y = 1; y < img.rows -1; ++y ) {
+                   bool internal = true;
+                   for ( int nx = -1; nx <= 1; ++nx ) {
+                      for ( int ny = -1; ny <= 1; ++ny ) {
+                         if ( img.at<unsigned char>( y + ny, x + nx ) != 127 ) {
+                            internal = false;
+                         }
+                      }
+                   }
+                   if ( img.at<unsigned char>( y, x ) == 127 && !internal ) {
+                      const double dx   = x - centroid.x; 
+                      const double dy   = y - centroid.y; 
+                      const int    sign = ( dx * dir.x + dy * dir.y < 0 );
+                      sum += sign;
+                   }
+                }
+             }
+             // TODO: eliminate this
              if ( dir.x * helper.x + dir.y * helper.y < 0 ) {
                 return 1.0;
              }
