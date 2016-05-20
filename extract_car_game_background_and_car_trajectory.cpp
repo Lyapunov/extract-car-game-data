@@ -347,7 +347,6 @@ namespace {
                 } else {
                    elem = findNearestBlobInBinaryImage( binaryMaskMat, centroidDistorted_ );
                 }
-                imshow( "debug", binaryMaskMatCarColor );
 
                 // distortion removal, basic version, TODO: improve
                 const double distortion = static_cast<double>( binaryMaskMat.cols ) * 3. / 4. / static_cast<double>( binaryMaskMat.rows );
@@ -356,7 +355,8 @@ namespace {
                 if ( elem != cv::Point( 0, 0 ) ) {
                    cv::floodFill( binaryMaskMat, elem, cvScalar(127.0) );  
                    if ( isOkColorBasedMask ) {
-                      cv::floodFill( binaryMaskMatCarColor, elem, cvScalar(127.0) );  
+                      cv::resize( binaryMaskMatCarColor, binaryMaskMatCarColor, undistortedSize );
+                      imshow( "debug", binaryMaskMatCarColor );
                    }
                    cv::Point2d centroidDistorted = calculateCentroid( binaryMaskMat );
 
@@ -377,7 +377,7 @@ namespace {
                    }
 
                    // todo: improve calculateK if isOkColorBasedMask is true
-                   const double kOfAngle = calculateK( isOkColorBasedMask ? binaryMaskMatCarColor : binaryMaskMat, helper, centroid, rawAngle, signOfAngle, jOfAngle );
+                   const double kOfAngle = calculateK( binaryMaskMat, isOkColorBasedMask ? binaryMaskMatCarColor : binaryMaskMat, helper, centroid, rawAngle, signOfAngle, jOfAngle );
 
                    const double PI = 3.141592653589793;
                    double angle = correctInterval( signOfAngle * rawAngle + PI / 2. * jOfAngle + PI * kOfAngle );
@@ -540,29 +540,30 @@ namespace {
              return maxJ;
           }
 
-          double calculateK( const cv::Mat& img, const cv::Point2d& helper, const cv::Point2d& centroid, double angle, double signOfAngle, double jOfAngle ) {
+          double calculateK( const cv::Mat& img, const cv::Mat& mask, const cv::Point2d& helper, const cv::Point2d& centroid, double angle, double signOfAngle, double jOfAngle ) {
              const double PI = 3.141592653589793;
              cv::Point2d dir ( cos( signOfAngle * angle + PI / 2. * jOfAngle), sin( signOfAngle * angle + PI / 2. * jOfAngle ) );
              // TODO: improve this
-             int sum = 0;
+             double positive2 = 0.;
+             double negative2 = 0.;
+
              for ( int x = 1; x < img.cols - 1; ++x ) {
                 for ( int y = 1; y < img.rows -1; ++y ) {
-                   bool internal = true;
-                   for ( int nx = -1; nx <= 1; ++nx ) {
-                      for ( int ny = -1; ny <= 1; ++ny ) {
-                         if ( img.at<unsigned char>( y + ny, x + nx ) != 127 ) {
-                            internal = false;
-                         }
-                      }
-                   }
-                   if ( img.at<unsigned char>( y, x ) == 127 && !internal ) {
+                   if ( img.at<unsigned char>( y, x ) == 127 ) {
                       const double dx   = x - centroid.x; 
                       const double dy   = y - centroid.y; 
-                      const int    sign = ( dx * dir.x + dy * dir.y < 0 );
-                      sum += sign;
+                      const double norma =  dx * dir.x + dy * dir.y;
+                      const int    sign = 2 * ( norma < 0.0 ) - 1;
+                      if ( sign > 0 ) {
+                         positive2 += norma * norma;
+                      } else {
+                         negative2 += norma * norma;
+                      }
                    }
                 }
              }
+             // std::cout << "=== " << positive2 << " " << negative2 << std::endl;
+             // return ( positive2 >= negative2 );
              // TODO: eliminate this
              if ( dir.x * helper.x + dir.y * helper.y < 0 ) {
                 return 1.0;
