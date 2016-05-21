@@ -393,7 +393,11 @@ namespace {
                    bool validAngle = false;
 
                    // preserving important data
-                   if ( validArea && validHelper && ( ( angleVect_.x == 0. && angleVect_.y == 0. ) || angleVect_.x * cos( angle )  + angleVect_.y * sin( angle ) > 0.85 ) ) {
+                   if ( validArea && validHelper 
+                        && ( ( angleVect_.x == 0. && angleVect_.y == 0. )
+                             || ( angleVect_.x * cos( angle )  + angleVect_.y * sin( angle ) > 0.85 )
+                             || ( validAreaCounter_ == 2 ) ) )
+                   {
                       angleVect_ = cv::Point2d( cos( angle ), sin( angle ) );
                       validAngle = true;
                    } else {
@@ -403,6 +407,11 @@ namespace {
                    }
                    angles_.push_back( angle );
                    places_.push_back( absPos  );
+                   if ( validArea && validHelper ) {
+                      ++validAreaCounter_;
+                   } else {
+                      validAreaCounter_ = 0;
+                   }
                    centroidDistorted_ = centroidDistorted;
                    centroid_ = centroid;
 
@@ -671,8 +680,8 @@ namespace {
           int ay_;
           double averageArea_ = 0.;
           long areaSamples_ = 0;
-
           int index_ = 0;
+          long validAreaCounter_ = 0;
           std::vector<double> angles_;
           std::vector<cv::Point2d> places_;
     };
