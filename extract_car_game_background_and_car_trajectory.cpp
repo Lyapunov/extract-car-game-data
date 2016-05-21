@@ -363,9 +363,13 @@ namespace {
                    // remove distortion
                    cv::resize( binaryMaskMat, binaryMaskMat, undistortedSize );
                    cv::Point2d centroid = calculateCentroid( binaryMaskMat );
+                   cv::Point2d endpontOfTranslationVector = centroid;
+                   if ( places_.size() > 10 ) {
+                      endpontOfTranslationVector += places_[ places_.size() - 1 ] - places_[ places_.size() - 10 ];
+                   }
 
                    // absolute position
-                   cv::Point2d absPos( dx + centroidDistorted.x, ( dy + centroidDistorted.y ) * distortion );
+                   cv::Point2d absPos( ax_ + centroidDistorted.x, ( ay_ + centroidDistorted.y ) * distortion );
 
                    // orientation
                    const double rawAngle = 0.5 * atan( 2.0 * calculateMoment( binaryMaskMat, centroid, 1, 1 ) / ( calculateMoment( binaryMaskMat, centroid, 2, 0 ) - calculateMoment( binaryMaskMat, centroid, 0, 2 ) ) );
@@ -402,6 +406,9 @@ namespace {
                    } else {
                       cv::circle( binaryMaskMat, centroid_, 5, cvScalar(255.0) );
                    }
+
+                   cv::circle( binaryMaskMat, endpontOfTranslationVector, 3, cvScalar(32.0) );
+
                    cv::Point2d dir ( cos( angle + PI ), sin( angle + PI ) );
                    cv::line( binaryMaskMat, centroid, centroid + cv::Point2d( 30. * dir ), cvScalar(255.0) );
 
