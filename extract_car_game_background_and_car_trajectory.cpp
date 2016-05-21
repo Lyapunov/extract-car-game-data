@@ -376,8 +376,10 @@ namespace {
                    const double signOfAngle = calculateSignOfAngle( binaryMaskMat, centroid, rawAngle );
                    const double jOfAngle = calculateJ( binaryMaskMat, centroid, rawAngle, signOfAngle );
                    cv::Point2d helper = angleVect_;
-                   if ( angleVect_.x == 0. && angleVect_.y == 0. ) {
-                      helper = centroid - centroid_;
+                   bool validHelper = false;
+                   if ( places_.size() > 10 ) {
+                      helper = places_[ places_.size() - 1 ] - places_[ places_.size() - 10 ];
+                      validHelper = true;
                    }
 
                    // todo: improve calculateK if isOkColorBasedMask is true
@@ -388,11 +390,13 @@ namespace {
                    bool validAngle = false;
 
                    // preserving important data
-                   if ( ( angleVect_.x == 0. && angleVect_.y == 0. ) || angleVect_.x * cos( angle )  + angleVect_.y * sin( angle ) > 0.85 ) {
+                   if ( validHelper && ( ( angleVect_.x == 0. && angleVect_.y == 0. ) || angleVect_.x * cos( angle )  + angleVect_.y * sin( angle ) > 0.85 ) ) {
                       angleVect_ = cv::Point2d( cos( angle ), sin( angle ) );
                       validAngle = true;
                    } else {
-                      angle = angles_[ angles_.size() - 1]; // error correction
+                      if ( angles_.size() ) {
+                         angle = angles_[ angles_.size() - 1]; // error correction
+                      }
                    }
                    angles_.push_back( angle );
                    places_.push_back( absPos  );
@@ -572,7 +576,7 @@ namespace {
              // std::cout << "=== " << positive2 << " " << negative2 << std::endl;
              // return ( positive2 >= negative2 );
              // TODO: eliminate this
-             if ( dir.x * helper.x + dir.y * helper.y < 0 ) {
+             if ( dir.x * helper.x + dir.y * helper.y > 0 ) {
                 return 1.0;
              }
              return 0.0;
