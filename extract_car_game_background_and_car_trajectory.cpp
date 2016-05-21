@@ -363,6 +363,10 @@ namespace {
                    // remove distortion
                    cv::resize( binaryMaskMat, binaryMaskMat, undistortedSize );
                    cv::Point2d centroid = calculateCentroid( binaryMaskMat );
+                   const long area = calculateArea( binaryMaskMat );
+                   averageArea_ = ( averageArea_ * areaSamples_ + area ) / ( areaSamples_ + 1 );
+                   ++areaSamples_;
+                   const bool validArea = ( area > averageArea_ / 1.25 ) && ( area < averageArea_ * 1.25 );
                    cv::Point2d endpontOfTranslationVector = centroid;
                    if ( places_.size() > 10 ) {
                       endpontOfTranslationVector += places_[ places_.size() - 1 ] - places_[ places_.size() - 10 ];
@@ -382,15 +386,14 @@ namespace {
                       validHelper = true;
                    }
 
-                   // todo: improve calculateK if isOkColorBasedMask is true
-                   const double kOfAngle = calculateK( binaryMaskMat, isOkColorBasedMask ? binaryMaskMatCarColor : binaryMaskMat, helper, centroid, rawAngle, signOfAngle, jOfAngle );
+                   const double kOfAngle = estimateKWithHelper( helper, rawAngle, signOfAngle, jOfAngle ); // couldn't calculate K in an exact way
 
                    const double PI = 3.141592653589793;
                    double angle = correctInterval( signOfAngle * rawAngle + PI / 2. * jOfAngle + PI * kOfAngle );
                    bool validAngle = false;
 
                    // preserving important data
-                   if ( validHelper && ( ( angleVect_.x == 0. && angleVect_.y == 0. ) || angleVect_.x * cos( angle )  + angleVect_.y * sin( angle ) > 0.85 ) ) {
+                   if ( validArea && validHelper && ( ( angleVect_.x == 0. && angleVect_.y == 0. ) || angleVect_.x * cos( angle )  + angleVect_.y * sin( angle ) > 0.85 ) ) {
                       angleVect_ = cv::Point2d( cos( angle ), sin( angle ) );
                       validAngle = true;
                    } else {
@@ -483,6 +486,19 @@ namespace {
              return ( lower + upper ) / 2.;
           }
 
+          long calculateArea( const cv::Mat& img, char centroColor = 127 ) {
+             long area = 0;
+
+             for ( int x = 0; x < img.cols; ++x ) {
+                for ( int y = 0; y < img.rows; ++y ) {
+                   if ( img.at<unsigned char>( y, x ) == centroColor ) {
+                      ++area;
+                   }
+                }
+             }
+
+             return area;
+          }
 
           cv::Point2d calculateCentroid( const cv::Mat& img, char centroColor = 127 ) {
              double sumx = 0.0;
@@ -551,31 +567,9 @@ namespace {
              return maxJ;
           }
 
-          double calculateK( const cv::Mat& img, const cv::Mat& mask, const cv::Point2d& helper, const cv::Point2d& centroid, double angle, double signOfAngle, double jOfAngle ) {
+          double estimateKWithHelper( const cv::Point2d& helper, double angle, double signOfAngle, double jOfAngle ) {
              const double PI = 3.141592653589793;
              cv::Point2d dir ( cos( signOfAngle * angle + PI / 2. * jOfAngle), sin( signOfAngle * angle + PI / 2. * jOfAngle ) );
-             // TODO: improve this
-             double positive2 = 0.;
-             double negative2 = 0.;
-
-             for ( int x = 1; x < img.cols - 1; ++x ) {
-                for ( int y = 1; y < img.rows -1; ++y ) {
-                   if ( img.at<unsigned char>( y, x ) == 127 ) {
-                      const double dx   = x - centroid.x; 
-                      const double dy   = y - centroid.y; 
-                      const double norma =  dx * dir.x + dy * dir.y;
-                      const int    sign = 2 * ( norma < 0.0 ) - 1;
-                      if ( sign > 0 ) {
-                         positive2 += norma * norma;
-                      } else {
-                         negative2 += norma * norma;
-                      }
-                   }
-                }
-             }
-             // std::cout << "=== " << positive2 << " " << negative2 << std::endl;
-             // return ( positive2 >= negative2 );
-             // TODO: eliminate this
              if ( dir.x * helper.x + dir.y * helper.y > 0 ) {
                 return 1.0;
              }
@@ -675,6 +669,8 @@ namespace {
           int radius_;
           int ax_;
           int ay_;
+          double averageArea_ = 0.;
+          long areaSamples_ = 0;
 
           int index_ = 0;
           std::vector<double> angles_;
