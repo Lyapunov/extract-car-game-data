@@ -336,14 +336,13 @@ namespace {
                 cv::bitwise_not( binaryMaskMat, binaryMaskMat );
 
                 cv::Point elem;
-                bool isOkColorBasedMask = false;
                 if ( createColorMask( binaryMaskMatCarColor, hsvFrameChannels[0], distroBackground ) ) {
-                   isOkColorBasedMask = true;
                    cv::bitwise_or( binaryMaskMatCarColor, sbpResult_, binaryMaskMatCarColor );
                    cv::bitwise_not( binaryMaskMatCarColor, binaryMaskMatCarColor );
 
                    // detecting our blob
                    elem = findNearestBlobInBinaryImage( binaryMaskMatCarColor, centroidDistorted_ );
+                   imshow( "carcolor", binaryMaskMatCarColor );
                 } else {
                    elem = findNearestBlobInBinaryImage( binaryMaskMat, centroidDistorted_ );
                 }
@@ -354,10 +353,6 @@ namespace {
 
                 if ( elem != cv::Point( 0, 0 ) ) {
                    cv::floodFill( binaryMaskMat, elem, cvScalar(127.0) );  
-                   if ( isOkColorBasedMask ) {
-                      cv::resize( binaryMaskMatCarColor, binaryMaskMatCarColor, undistortedSize );
-                      imshow( "debug", binaryMaskMatCarColor );
-                   }
                    cv::Point2d centroidDistorted = calculateCentroid( binaryMaskMat );
 
                    // remove distortion
