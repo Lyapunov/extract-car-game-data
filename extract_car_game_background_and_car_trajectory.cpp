@@ -402,6 +402,7 @@ namespace {
                    }
                    angles_.push_back( angle );
                    places_.push_back( absPos  );
+                   valid_.push_back( validAngle );
                    if ( validArea && validHelper ) {
                       ++validAreaCounter_;
                    } else {
@@ -437,9 +438,10 @@ namespace {
              return true;
           }
           virtual std::string getTitle() const override { return "Processing"; }
-          void getResult( std::vector<cv::Point2d>& places, std::vector<double>& angles ) const {
+          void getResult( std::vector<cv::Point2d>& places, std::vector<double>& angles, std::vector<bool>& valid ) const {
              places = places_;
              angles = angles_;
+             valid  = valid_;
           }
 
        private:
@@ -679,6 +681,7 @@ namespace {
           long validAreaCounter_ = 0;
           std::vector<double> angles_;
           std::vector<cv::Point2d> places_;
+          std::vector<bool> valid_;
     };
 
     
@@ -785,10 +788,11 @@ int main(int ac, char** av) {
     // printing the results
     std::cout << "X Y ANGLE" << std::endl;
     std::vector<cv::Point2d> places;
-    std::vector<double>    angle;
-    cp.getResult( places, angle );
+    std::vector<double>      angle;
+    std::vector<bool>        valid;
+    cp.getResult( places, angle, valid );
     for ( unsigned int i = 0; i < places.size(); ++i ) {
-       std::cout << std::fixed << std::setprecision(5) << places[i].x << " " << places[i].y << " " << angle[i] << std::endl;
+       std::cout << std::fixed << std::setprecision(5) << places[i].x << " " << places[i].y << " " << angle[i] << " " << valid[i] << std::endl;
     }
 
     return 0;
