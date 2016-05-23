@@ -635,10 +635,6 @@ namespace {
              return len;
           }
 
-          bool isBackgroundPixel( const Mat& img, int x, int y ) const {
-             return bdistro_[ img.at<Vec3b>(y,x)[0] / 4 ][ img.at<Vec3b>(y,x)[1] / 4 ].count( img.at<Vec3b>(y,x)[2] / 4 );
-          }
-
           void createColorDistribution( const Mat& img, const Mat& mask, unsigned char maskValue, std::set<unsigned char>& distribution ) const {
              for(int y=0;y<img.rows;y++) {
                 for(int x=0;x<img.cols;x++) {
