@@ -780,7 +780,7 @@ int main(int ac, char** av) {
     } 
 
     // printing the results
-    std::cout << "X Y ANGLE" << std::endl;
+    std::cout << "X Y ANGLE VALID" << std::endl;
     std::vector<cv::Point2d> places;
     std::vector<double>      angle;
     std::vector<bool>        valid;
