@@ -680,8 +680,6 @@ namespace {
           std::vector<bool> valid_;
     };
 
-    
-
     int processShell(VideoCapture& capture, ImageProcessor& processor) {
         string window_name = processor.getTitle();
         namedWindow(window_name, CV_WINDOW_KEEPRATIO); //resizable window;
