@@ -362,11 +362,6 @@ namespace {
                    averageArea_ = ( averageArea_ * areaSamples_ + area ) / ( areaSamples_ + 1 );
                    ++areaSamples_;
                    const bool validArea = ( area > averageArea_ / 1.25 ) && ( area < averageArea_ * 1.25 );
-                   cv::Point2d endpontOfTranslationVector = centroid;
-                   if ( places_.size() > 10 ) {
-                      endpontOfTranslationVector += places_[ places_.size() - 1 ] - places_[ places_.size() - 10 ];
-                   }
-
                    // absolute position
                    cv::Point2d absPos( ax_ + centroidDistorted.x, ( ay_ + centroidDistorted.y ) * distortion );
 
@@ -419,7 +414,14 @@ namespace {
                       cv::circle( binaryMaskMat, centroid_, 5, cvScalar(255.0) );
                    }
 
-                   cv::circle( binaryMaskMat, endpontOfTranslationVector, 3, cvScalar(32.0) );
+                   // visualizing the motion vector == the change of position on the last 10 frames.
+                   {
+                      cv::Point2d endPointOfMotionVector = centroid;
+                      if ( places_.size() > 10 ) {
+                         endPointOfMotionVector += places_[ places_.size() - 1 ] - places_[ places_.size() - 10 ];
+                      }
+                      cv::circle( binaryMaskMat, endPointOfMotionVector, 3, cvScalar(32.0) );
+                   }
 
                    cv::Point2d dir ( cos( angle + PI ), sin( angle + PI ) );
                    cv::line( binaryMaskMat, centroid, centroid + cv::Point2d( 30. * dir ), cvScalar(255.0) );
