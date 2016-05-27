@@ -275,24 +275,8 @@ namespace {
           CarProcessor( const std::vector<Vec2f>& trajectory,
                         const cv::Mat& background,
                         const cv::Mat& sbpResult)
-           : trajectory_( trajectory ), background_( background ), bdistro_(), sbpResult_( sbpResult ), centroidDistorted_( sbpResult.cols / 2, sbpResult.rows / 2 ), centroid_( 0.0, 0.0 ), radius_( ( background.cols - 1 ) / 2 ), ax_( radius_ ), ay_( radius_ )
+           : trajectory_( trajectory ), background_( background ), sbpResult_( sbpResult ), centroidDistorted_( sbpResult.cols / 2, sbpResult.rows / 2 ), centroid_( 0.0, 0.0 ), radius_( ( background.cols - 1 ) / 2 ), ax_( radius_ ), ay_( radius_ )
           {
-             init();
-          }
-
-          void init() {
-             // static background color distribution
-             for(int y=0;y<background_.rows;y++) {
-                for(int x=0;x<background_.cols;x++) {
-                   char r = background_.at<Vec3b>(y,x)[0] / 4;
-                   char g = background_.at<Vec3b>(y,x)[1] / 4;
-                   char b = background_.at<Vec3b>(y,x)[2] / 4;
-                   if ( r == 0 && g == 63 && b == 0 ) {
-                      continue;
-                   }
-                   bdistro_[ r ][ g ].insert( b );
-                }
-             }
           }
 
           virtual bool process( const cv::Mat& frame, bool dropped ) override {
@@ -392,7 +376,7 @@ namespace {
                       validAngle = true;
                    } else {
                       if ( angles_.size() ) {
-                         angle = angles_[ angles_.size() - 1]; // error correction
+                         angle = angles_[ angles_.size() - 1 ]; // error correction
                       }
                    }
                    angles_.push_back( angle );
@@ -665,7 +649,6 @@ namespace {
 
           const std::vector<Vec2f>& trajectory_;
           const cv::Mat& background_;
-          mutable std::map< char, std::map< char, std::set< char > > > bdistro_;
           const cv::Mat& sbpResult_;
           cv::Point2d centroidDistorted_;
           cv::Point2d centroid_;
