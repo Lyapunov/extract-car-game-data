@@ -362,7 +362,6 @@ namespace {
 
                    const double kOfAngle = estimateKWithHelper( helper, rawAngle, signOfAngle, jOfAngle ); // couldn't calculate K in an exact way
 
-                   const double PI = 3.141592653589793;
                    double angle = correctInterval( signOfAngle * rawAngle + PI / 2. * jOfAngle + PI * kOfAngle );
                    bool validAngle = false;
 
@@ -527,7 +526,6 @@ namespace {
           }
 
           double calculateSignOfAngle( const cv::Mat& img, const cv::Point2d& centroid, double angle ) {
-             const double PI = 3.141592653589793;
              int besti = 0;
              long bestintersect = 0;
              for ( int i = 0; i <= 1; ++i ) {
@@ -545,7 +543,6 @@ namespace {
           }
 
           double calculateJ( const cv::Mat& img, const cv::Point2d& centroid, double angle, double signOfAngle ) {
-             const double PI = 3.141592653589793;
              double maxLen = 0.;
              int maxJ = 0;
              for ( int j = 0; j < 2; ++j ) {
@@ -560,7 +557,6 @@ namespace {
           }
 
           double estimateKWithHelper( const cv::Point2d& helper, double angle, double signOfAngle, double jOfAngle ) {
-             const double PI = 3.141592653589793;
              cv::Point2d dir ( cos( signOfAngle * angle + PI / 2. * jOfAngle), sin( signOfAngle * angle + PI / 2. * jOfAngle ) );
              if ( dir.x * helper.x + dir.y * helper.y > 0 ) {
                 return 1.0;
@@ -569,7 +565,6 @@ namespace {
           }
 
           double correctInterval( double angle ) {
-             const double PI = 3.141592653589793;
              while ( angle < 0.0 ) {
                 angle += 2 * PI;
              }
@@ -663,6 +658,8 @@ namespace {
           std::vector<double> angles_;
           std::vector<cv::Point2d> places_;
           std::vector<bool> valid_;
+
+          static constexpr double PI = 3.141592653589793;
     };
 
     int processShell(VideoCapture& capture, ImageProcessor& processor) {
