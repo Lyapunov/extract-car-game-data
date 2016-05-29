@@ -275,7 +275,13 @@ namespace {
           CarProcessor( const std::vector<Vec2f>& trajectory,
                         const cv::Mat& background,
                         const cv::Mat& sbpResult)
-           : trajectory_( trajectory ), background_( background ), sbpResult_( sbpResult ), centroidDistorted_( sbpResult.cols / 2, sbpResult.rows / 2 ), centroid_( 0.0, 0.0 ), radius_( ( background.cols - 1 ) / 2 ), ax_( radius_ ), ay_( radius_ )
+           : trajectory_( trajectory ),
+             background_( background ),
+             sbpResult_( sbpResult ),
+             centroidDistorted_( sbpResult.cols / 2, sbpResult.rows / 2 ),
+             radius_( ( background.cols - 1 ) / 2 ),
+             ax_( radius_ ),
+             ay_( radius_ )
           {
           }
 
