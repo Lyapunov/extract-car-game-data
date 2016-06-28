@@ -275,24 +275,14 @@ namespace {
           CarProcessor( const std::vector<Vec2f>& trajectory,
                         const cv::Mat& background,
                         const cv::Mat& sbpResult)
-           : trajectory_( trajectory ), background_( background ), bdistro_(), sbpResult_( sbpResult ), centroidDistorted_( sbpResult.cols / 2, sbpResult.rows / 2 ), centroid_( 0.0, 0.0 ), radius_( ( background.cols - 1 ) / 2 ), ax_( radius_ ), ay_( radius_ )
+           : trajectory_( trajectory ),
+             background_( background ),
+             sbpResult_( sbpResult ),
+             centroidDistorted_( sbpResult.cols / 2, sbpResult.rows / 2 ),
+             radius_( ( background.cols - 1 ) / 2 ),
+             ax_( radius_ ),
+             ay_( radius_ )
           {
-             init();
-          }
-
-          void init() {
-             // static background color distribution
-             for(int y=0;y<background_.rows;y++) {
-                for(int x=0;x<background_.cols;x++) {
-                   char r = background_.at<Vec3b>(y,x)[0] / 4;
-                   char g = background_.at<Vec3b>(y,x)[1] / 4;
-                   char b = background_.at<Vec3b>(y,x)[2] / 4;
-                   if ( r == 0 && g == 63 && b == 0 ) {
-                      continue;
-                   }
-                   bdistro_[ r ][ g ].insert( b );
-                }
-             }
           }
 
           virtual bool process( const cv::Mat& frame, bool dropped ) override {
@@ -336,14 +326,13 @@ namespace {
                 cv::bitwise_not( binaryMaskMat, binaryMaskMat );
 
                 cv::Point elem;
-                bool isOkColorBasedMask = false;
                 if ( createColorMask( binaryMaskMatCarColor, hsvFrameChannels[0], distroBackground ) ) {
-                   isOkColorBasedMask = true;
                    cv::bitwise_or( binaryMaskMatCarColor, sbpResult_, binaryMaskMatCarColor );
                    cv::bitwise_not( binaryMaskMatCarColor, binaryMaskMatCarColor );
 
                    // detecting our blob
                    elem = findNearestBlobInBinaryImage( binaryMaskMatCarColor, centroidDistorted_ );
+                   imshow( "carcolor", binaryMaskMatCarColor );
                 } else {
                    elem = findNearestBlobInBinaryImage( binaryMaskMat, centroidDistorted_ );
                 }
@@ -354,20 +343,15 @@ namespace {
 
                 if ( elem != cv::Point( 0, 0 ) ) {
                    cv::floodFill( binaryMaskMat, elem, cvScalar(127.0) );  
-                   if ( isOkColorBasedMask ) {
-                      cv::resize( binaryMaskMatCarColor, binaryMaskMatCarColor, undistortedSize );
-                      imshow( "debug", binaryMaskMatCarColor );
-                   }
                    cv::Point2d centroidDistorted = calculateCentroid( binaryMaskMat );
 
                    // remove distortion
                    cv::resize( binaryMaskMat, binaryMaskMat, undistortedSize );
                    cv::Point2d centroid = calculateCentroid( binaryMaskMat );
-                   cv::Point2d endpontOfTranslationVector = centroid;
-                   if ( places_.size() > 10 ) {
-                      endpontOfTranslationVector += places_[ places_.size() - 1 ] - places_[ places_.size() - 10 ];
-                   }
-
+                   const long area = calculateArea( binaryMaskMat );
+                   averageArea_ = ( averageArea_ * areaSamples_ + area ) / ( areaSamples_ + 1 );
+                   ++areaSamples_;
+                   const bool validArea = ( area > averageArea_ / 1.25 ) && ( area < averageArea_ * 1.25 );
                    // absolute position
                    cv::Point2d absPos( ax_ + centroidDistorted.x, ( ay_ + centroidDistorted.y ) * distortion );
 
@@ -376,26 +360,38 @@ namespace {
                    const double signOfAngle = calculateSignOfAngle( binaryMaskMat, centroid, rawAngle );
                    const double jOfAngle = calculateJ( binaryMaskMat, centroid, rawAngle, signOfAngle );
                    cv::Point2d helper = angleVect_;
-                   if ( angleVect_.x == 0. && angleVect_.y == 0. ) {
-                      helper = centroid - centroid_;
+                   bool validHelper = false;
+                   if ( places_.size() > 10 ) {
+                      helper = places_[ places_.size() - 1 ] - places_[ places_.size() - 10 ];
+                      validHelper = true;
                    }
 
-                   // todo: improve calculateK if isOkColorBasedMask is true
-                   const double kOfAngle = calculateK( binaryMaskMat, isOkColorBasedMask ? binaryMaskMatCarColor : binaryMaskMat, helper, centroid, rawAngle, signOfAngle, jOfAngle );
+                   const double kOfAngle = estimateKWithHelper( helper, rawAngle, signOfAngle, jOfAngle ); // couldn't calculate K in an exact way
 
-                   const double PI = 3.141592653589793;
                    double angle = correctInterval( signOfAngle * rawAngle + PI / 2. * jOfAngle + PI * kOfAngle );
                    bool validAngle = false;
 
                    // preserving important data
-                   if ( ( angleVect_.x == 0. && angleVect_.y == 0. ) || angleVect_.x * cos( angle )  + angleVect_.y * sin( angle ) > 0.85 ) {
+                   if ( validArea && validHelper 
+                        && ( ( angleVect_.x == 0. && angleVect_.y == 0. )
+                             || ( angleVect_.x * cos( angle )  + angleVect_.y * sin( angle ) > 0.85 )
+                             || ( validAreaCounter_ == 2 ) ) )
+                   {
                       angleVect_ = cv::Point2d( cos( angle ), sin( angle ) );
                       validAngle = true;
                    } else {
-                      angle = angles_[ angles_.size() - 1]; // error correction
+                      if ( angles_.size() ) {
+                         angle = angles_[ angles_.size() - 1 ]; // error correction
+                      }
                    }
                    angles_.push_back( angle );
                    places_.push_back( absPos  );
+                   valid_.push_back( validAngle );
+                   if ( validArea && validHelper ) {
+                      ++validAreaCounter_;
+                   } else {
+                      validAreaCounter_ = 0;
+                   }
                    centroidDistorted_ = centroidDistorted;
                    centroid_ = centroid;
 
@@ -407,7 +403,14 @@ namespace {
                       cv::circle( binaryMaskMat, centroid_, 5, cvScalar(255.0) );
                    }
 
-                   cv::circle( binaryMaskMat, endpontOfTranslationVector, 3, cvScalar(32.0) );
+                   // visualizing the motion vector == the change of position on the last 10 frames.
+                   {
+                      cv::Point2d endPointOfMotionVector = centroid;
+                      if ( places_.size() > 10 ) {
+                         endPointOfMotionVector += places_[ places_.size() - 1 ] - places_[ places_.size() - 10 ];
+                      }
+                      cv::circle( binaryMaskMat, endPointOfMotionVector, 3, cvScalar(32.0) );
+                   }
 
                    cv::Point2d dir ( cos( angle + PI ), sin( angle + PI ) );
                    cv::line( binaryMaskMat, centroid, centroid + cv::Point2d( 30. * dir ), cvScalar(255.0) );
@@ -426,9 +429,10 @@ namespace {
              return true;
           }
           virtual std::string getTitle() const override { return "Processing"; }
-          void getResult( std::vector<cv::Point2d>& places, std::vector<double>& angles ) const {
+          void getResult( std::vector<cv::Point2d>& places, std::vector<double>& angles, std::vector<bool>& valid ) const {
              places = places_;
              angles = angles_;
+             valid  = valid_;
           }
 
        private:
@@ -479,6 +483,19 @@ namespace {
              return ( lower + upper ) / 2.;
           }
 
+          long calculateArea( const cv::Mat& img, char centroColor = 127 ) {
+             long area = 0;
+
+             for ( int x = 0; x < img.cols; ++x ) {
+                for ( int y = 0; y < img.rows; ++y ) {
+                   if ( img.at<unsigned char>( y, x ) == centroColor ) {
+                      ++area;
+                   }
+                }
+             }
+
+             return area;
+          }
 
           cv::Point2d calculateCentroid( const cv::Mat& img, char centroColor = 127 ) {
              double sumx = 0.0;
@@ -515,7 +532,6 @@ namespace {
           }
 
           double calculateSignOfAngle( const cv::Mat& img, const cv::Point2d& centroid, double angle ) {
-             const double PI = 3.141592653589793;
              int besti = 0;
              long bestintersect = 0;
              for ( int i = 0; i <= 1; ++i ) {
@@ -533,7 +549,6 @@ namespace {
           }
 
           double calculateJ( const cv::Mat& img, const cv::Point2d& centroid, double angle, double signOfAngle ) {
-             const double PI = 3.141592653589793;
              double maxLen = 0.;
              int maxJ = 0;
              for ( int j = 0; j < 2; ++j ) {
@@ -547,39 +562,15 @@ namespace {
              return maxJ;
           }
 
-          double calculateK( const cv::Mat& img, const cv::Mat& mask, const cv::Point2d& helper, const cv::Point2d& centroid, double angle, double signOfAngle, double jOfAngle ) {
-             const double PI = 3.141592653589793;
+          double estimateKWithHelper( const cv::Point2d& helper, double angle, double signOfAngle, double jOfAngle ) {
              cv::Point2d dir ( cos( signOfAngle * angle + PI / 2. * jOfAngle), sin( signOfAngle * angle + PI / 2. * jOfAngle ) );
-             // TODO: improve this
-             double positive2 = 0.;
-             double negative2 = 0.;
-
-             for ( int x = 1; x < img.cols - 1; ++x ) {
-                for ( int y = 1; y < img.rows -1; ++y ) {
-                   if ( img.at<unsigned char>( y, x ) == 127 ) {
-                      const double dx   = x - centroid.x; 
-                      const double dy   = y - centroid.y; 
-                      const double norma =  dx * dir.x + dy * dir.y;
-                      const int    sign = 2 * ( norma < 0.0 ) - 1;
-                      if ( sign > 0 ) {
-                         positive2 += norma * norma;
-                      } else {
-                         negative2 += norma * norma;
-                      }
-                   }
-                }
-             }
-             // std::cout << "=== " << positive2 << " " << negative2 << std::endl;
-             // return ( positive2 >= negative2 );
-             // TODO: eliminate this
-             if ( dir.x * helper.x + dir.y * helper.y < 0 ) {
+             if ( dir.x * helper.x + dir.y * helper.y > 0 ) {
                 return 1.0;
              }
              return 0.0;
           }
 
           double correctInterval( double angle ) {
-             const double PI = 3.141592653589793;
              while ( angle < 0.0 ) {
                 angle += 2 * PI;
              }
@@ -631,10 +622,6 @@ namespace {
              return len;
           }
 
-          bool isBackgroundPixel( const Mat& img, int x, int y ) const {
-             return bdistro_[ img.at<Vec3b>(y,x)[0] / 4 ][ img.at<Vec3b>(y,x)[1] / 4 ].count( img.at<Vec3b>(y,x)[2] / 4 );
-          }
-
           void createColorDistribution( const Mat& img, const Mat& mask, unsigned char maskValue, std::set<unsigned char>& distribution ) const {
              for(int y=0;y<img.rows;y++) {
                 for(int x=0;x<img.cols;x++) {
@@ -663,7 +650,6 @@ namespace {
 
           const std::vector<Vec2f>& trajectory_;
           const cv::Mat& background_;
-          mutable std::map< char, std::map< char, std::set< char > > > bdistro_;
           const cv::Mat& sbpResult_;
           cv::Point2d centroidDistorted_;
           cv::Point2d centroid_;
@@ -671,13 +657,16 @@ namespace {
           int radius_;
           int ax_;
           int ay_;
-
+          double averageArea_ = 0.;
+          long areaSamples_ = 0;
           int index_ = 0;
+          long validAreaCounter_ = 0;
           std::vector<double> angles_;
           std::vector<cv::Point2d> places_;
-    };
+          std::vector<bool> valid_;
 
-    
+          static constexpr double PI = 3.141592653589793;
+    };
 
     int processShell(VideoCapture& capture, ImageProcessor& processor) {
         string window_name = processor.getTitle();
@@ -779,12 +768,13 @@ int main(int ac, char** av) {
     } 
 
     // printing the results
-    std::cout << "X Y ANGLE" << std::endl;
+    std::cout << "X Y ANGLE VALID" << std::endl;
     std::vector<cv::Point2d> places;
-    std::vector<double>    angle;
-    cp.getResult( places, angle );
+    std::vector<double>      angle;
+    std::vector<bool>        valid;
+    cp.getResult( places, angle, valid );
     for ( unsigned int i = 0; i < places.size(); ++i ) {
-       std::cout << std::fixed << std::setprecision(5) << places[i].x << " " << places[i].y << " " << angle[i] << std::endl;
+       std::cout << std::fixed << std::setprecision(5) << places[i].x << " " << places[i].y << " " << angle[i] << " " << valid[i] << std::endl;
     }
 
     return 0;
